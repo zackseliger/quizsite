@@ -1,0 +1,36 @@
+<%- include('../layouts/header') -%>
+
+<h1>Create a Quiz</h1>
+
+<div class="collapsible-container">
+	<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Results</h2>
+	<p>Test</p>
+	<p>Test 2<span style="color:red"> asofjeoaisfej</span></p>
+</div>
+
+<button>Submit</button>
+
+<script>
+	$(document).ready(() => {
+		$('.collapsible-container .collapsible-toggle').click(function(e) {
+			let container = $(this).closest('.collapsible-container');
+			let children = container.children();
+
+			$(this).find('.collapsible-arrow').toggleClass('fa-arrow-down');
+			$(this).find('.collapsible-arrow').toggleClass('fa-arrow-right');
+
+			if ($(children).eq(1).is(":visible")) {
+				children.each((index, val) => {
+					if (index > 0) $(val).hide("slow");
+				});
+			}
+			else {
+				children.each((index, val) => {
+					if (index > 0) $(val).show("slow");
+				});
+			}
+		});
+	});
+</script>
+
+<%- include('../layouts/footer') -%>

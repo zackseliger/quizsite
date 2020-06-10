@@ -1,0 +1,21 @@
+<html>
+<head>
+	<link rel="stylesheet" href="/styles.css" />
+	<link href="https://fonts.googleapis.com/css2?family=Catamaran&display=swap" rel="stylesheet">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="/jquery.js"></script>
+	<script src="/fa.js"></script>
+</head>
+
+<body>
+	<!--header-->
+	<div id="header">
+		<div style="margin: 0 auto;width: 95vw">
+			<ul style="display:flex;">
+				<a href="/">Quiz Site</a>
+				<% if (myuser && myuser.role === 'admin') { %>
+					<a href="/dashboard">Dashboard</a>
+				<% } %>
+			</ul>
+		</div>
+	</div>
