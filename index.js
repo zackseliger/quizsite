@@ -2,11 +2,42 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
+const Busboy = require('busboy');
 
 //set up environment
 require('dotenv').config();
 const database = require('./database');
 const app = express();
+
+//utility busboy function
+function parseFormData(req, callback) {
+  let busboy = new Busboy({headers: req.headers});
+  let data = {};
+
+  //put files in buffers
+  busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
+    //create path based on file extension
+    let path = fieldname+filename.slice(filename.lastIndexOf('.'));
+    let fileData = Buffer.alloc(0);
+
+    //get file data
+    file.on('data', (chunk) => {
+      fileData = Buffer.concat([fileData, chunk], fileData.length + chunk.length);
+    });
+    file.on('end', () => {
+      data[path] = fileData;
+    });
+  });
+  //non-file inputs
+  busboy.on('field', (fieldname, val) => {
+    data[fieldname] = val;
+  });
+  busboy.on('finish', () => {
+    callback(null, data);
+  });
+
+  req.pipe(busboy);
+}
 
 //setup static routes and body parser
 app.use(express.static('public'));
@@ -37,6 +68,7 @@ const sessionOptions = {
   store: sessionStore,
   resave: false,
   saveUninitialized: true,
+  rolling: true,
   cookie: {
     secure: false,
 		maxAge: 86400000,//one day
@@ -72,6 +104,17 @@ app.get('/addquiz', function(req, res) {
   if (!req.session.user || req.session.user.role !== 'admin') res.redirect('/');
 
   res.render('quiz/add.ejs');
+});
+
+app.post('/addquiz', function(req, res) {
+  if (!req.session.user || req.session.user.role !== 'admin') return res.send("no");
+
+  parseFormData(req, (err, data) => {
+    if (err) return res.send(err);
+
+    console.log(data);
+    res.send("ok");
+  });
 });
 
 app.get('/login', function(req, res) {

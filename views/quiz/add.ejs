@@ -1,17 +1,160 @@
 <%- include('../layouts/header') -%>
 
+<link href="/nouislider.css" rel="stylesheet">
+<script src="/nouislider.js"></script>
+
+<style>
+	.result-card {
+		width: 400px;
+		margin: 10px 0;
+		padding: 20px;
+		background-color: #FFF;
+		border-radius: 3px;
+	}
+	.result-card span {
+		font-weight: bold;
+	}
+	.result-card p {
+		margin: 0;
+		font-size: 16px;
+	}
+	.noUi-target {
+		background: linear-gradient(90deg, rgba(254,24,24,1) 0%, rgba(255,255,255,1) 30%, rgba(0,255,59,1) 60%);
+	}
+</style>
+
 <h1>Create a Quiz</h1>
 
-<div class="collapsible-container">
-	<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Results</h2>
-	<p>Test</p>
-	<p>Test 2<span style="color:red"> asofjeoaisfej</span></p>
+<div style="border:3px solid black;left:25%;width:50%;height:50%;display:none;position:absolute;background-color:#FFF;border-radius:3px;text-align:center;box-shadow:#999 0 0 10px;" id="modal">
+	<div style="cursor:pointer;right:5px;position:absolute;top:3px;" onclick="(()=>$('#modal').hide())();"><i class="fa fa-window-close"></i></div>
+	<div id="modal-content" style="overflow:auto;height:100%;">
+
+	</div>
 </div>
 
-<button>Submit</button>
+<div style="display:inline-block;max-width:50%;">
+	<div class="collapsible-container">
+		<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Results</h2>
+		<input type="text" placeholder="Name" id="result-name-input"/><br/>
+		<textarea placeholder="Description" id="result-description-input"></textarea><br/>
+		<button onclick="saveResult()">Save</button>
+	</div>
+
+	<div class="collapsible-container">
+		<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Questions</h2>
+		<textarea placeholder="Question" id="question-input"></textarea><br/>
+		<div id="question-answers">
+			<input type="text" placeholder="Answer 1"/><br/>
+			<input type="text" placeholder="Answer 2"/><br/>
+		</div>
+		<button onclick="showQuestionEffects()">Effects</button>
+		<button onclick="saveQuestion()">Save</button>
+	</div>
+
+	<div class="collapsible-container">
+		<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Misc</h2>
+		<input type="text" placeholder="Title" id="quiz-title" /><br/>
+		<textarea id="quiz-description" placeholder="Description"></textarea><br/>
+		<label>Quiz Image: </label><input type="file" id="quiz-image"/>
+	</div>
+</div>
+
+<div style="display:inline-block;vertical-align:top;max-width:49%;">
+	<div id="quiz-questions"></div>
+	<div id="quiz-results"></div>
+</div>
+
+<div id="slider"></div>
+<button onclick="sendRequest()">Submit</button>
 
 <script>
+	//the quiz object that goes to the server
+	let quizData = new FormData();
+	let questions = [];
+	let results = [];
+	quizData.append("ownerId", <%= myuser.id %>);
+
+	function saveResult() {
+		$("#quiz-results").append(`<div class="result-card">
+	<span>${$("#result-name-input").val()}</span>
+	<p>${$("#result-description-input").val()}</p>
+</div>`);
+
+		//add to results array
+		results.push({
+			name: $("#result-name-input").val(),
+			description: $("#result-description-input").val()
+		});
+
+		//clear input and textarea
+		$("#result-name-input").val("");
+		$("#result-description-input").val("");
+	}
+
+	//show model with sliders
+	function showQuestionEffects() {
+		$('#modal-content').empty();
+		$('#question-answers').children().each((index, val) => {
+			if (index%2 === 1 || $(val).val() === "") return;
+
+			let effectCode = ``;
+			for (let i = 0; i < results.length; i++) {
+				effectCode += `<span style="font-size:16px;position:relative;left:-30%;">${results[i].name}</span><span></span><br/><div class="slider" style="width:80%;display:inline-block;"></div><br/>`;
+			}
+			$('#modal-content').append(`<div style="font-weight:bold;margin:20px 0 0 0;">${$(val).val()}</div>${effectCode}`);
+		});
+		makeSliders();
+		$("#modal").show();
+	}
+
+	//create sliders from all divs with the class 'slider'
+	function makeSliders() {
+		let sliders = document.getElementsByClassName('slider');
+		for (let i = 0; i < sliders.length; i++) {
+			noUiSlider.create(sliders[i], {
+				start: 3,
+				step: 1,
+				range: {
+					'min': 0,
+					'max': 10
+				}
+			});
+
+			//make text update when value of slider changes
+			sliders[i].noUiSlider.on('update', function(e) {
+				$(sliders[i]).siblings('span').eq(i*2+1).text(sliders[i].noUiSlider.get()-3);
+			});
+		}
+	}
+
+	function saveQuestion() {
+		$("#quiz-questions").append(`<div class="">asufheiasfe</div>`);
+	}
+
+	function sendRequest() {
+		quizData.append("quizTitle", document.getElementById("quiz-title").value);
+		quizData.append("quizDescription", document.getElementById("quiz-description").value);
+		quizData.append("quizImage", document.getElementById("quiz-image").files[0]);
+
+		let request = new XMLHttpRequest();
+		request.open("POST", "/addquiz");
+		request.send(quizData);
+	}
+
 	$(document).ready(() => {
+
+		//adding or removing question answers
+		$('#question-answers').on('paste keyup', function(e) {
+			if ($(this).children().eq($(this).children().length-2).val().length > 0) {
+				$('#question-answers').append(`<input type="text" placeholder="Answer ${$(this).children().length/2+1}"/><br/>`);
+			}
+			else if ($(this).children().eq($(this).children().length-2).val().length === 0 && $(this).children().eq($(this).children().length-4).val().length === 0 && $(this).children().length > 4) {
+				$(this).children().eq($(this).children().length-1).remove();
+				$(this).children().eq($(this).children().length-1).remove();
+			}
+		});
+
+		// have the toggle thing for collapsible containers
 		$('.collapsible-container .collapsible-toggle').click(function(e) {
 			let container = $(this).closest('.collapsible-container');
 			let children = container.children();
@@ -21,12 +164,12 @@
 
 			if ($(children).eq(1).is(":visible")) {
 				children.each((index, val) => {
-					if (index > 0) $(val).hide("slow");
+					if (index > 0) $(val).hide("fast");
 				});
 			}
 			else {
 				children.each((index, val) => {
-					if (index > 0) $(val).show("slow");
+					if (index > 0) $(val).show("fast");
 				});
 			}
 		});

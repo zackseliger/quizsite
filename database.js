@@ -95,7 +95,7 @@ queryDatabase(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME} CHARACTER SE
 .then(() => queryDatabase(`USE ${process.env.DB_NAME};`))
 .then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY AUTO_INCREMENT, username TINYTEXT, email TINYTEXT, password TINYTEXT, role VARCHAR(255) DEFAULT 'user');`))
 .then(() => queryDatabase(`SELECT * FROM users`).then((results) => {if (results.length === 0) bcrypt.hash('defaultpassword', 12, (err, hash) => queryDatabase(`INSERT INTO USERS (username, email, password, role) VALUES ('admin', 'admin@example.com', '${hash}', 'admin')`))}))
-.then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS quizzes (id INT PRIMARY KEY AUTO_INCREMENT, owner_id INT NOT NULL, name TEXT, description TEXT, article TEXT, image TEXT, type INT DEFAULT 0, tags TEXT, results TEXT, questions TEXT);`))
+.then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS quizzes (id INT PRIMARY KEY AUTO_INCREMENT, owner_id INT NOT NULL, name TEXT, description TEXT, article TEXT DEFAULT '', image TEXT, type INT DEFAULT 0, tags TEXT, results TEXT, questions TEXT);`))
 .catch((err) => console.log(err));
 
 module.exports = {
