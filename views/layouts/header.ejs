@@ -1,18 +1,21 @@
 <html>
 <head>
-	<link rel="stylesheet" href="/styles.css" />
 	<link href="https://fonts.googleapis.com/css2?family=Catamaran&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="/styles.css" />
+
+	<link rel="icon" type="image/png" href="/logo.png" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<script src="/jquery.js"></script>
-	<script src="/fa.js"></script>
+
+	<script src="/lib/jquery.js"></script>
+	<script src="/lib/fa.js"></script>
 </head>
 
 <body>
 	<!--header-->
 	<div id="header">
 		<div style="margin: 0 auto;width: 95vw">
-			<ul style="display:flex;margin:0;padding:0;">
-				<a href="/">Quiz Site</a>
+			<ul style="display:flex;margin:0;padding:0;font-size:38px;">
+				<a href="/" class="logo"><img src="/logo.png" style="height:45px;vertical-align:sub;"/>Quizonality</a>
 				<% if (myuser && myuser.role === 'admin') { %>
 					<a href="/dashboard">Dashboard</a>
 				<% } %>

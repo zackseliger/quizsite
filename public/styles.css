@@ -5,6 +5,7 @@ body, html {
 	font-size: 18px;
 	font-family: Catamaran, Arial, sans-serif;
 	line-height: 1.5;
+	color: #222;
 }
 
 input, button, textarea {
@@ -20,8 +21,18 @@ textarea {
 #header {
 	background-color: #FFF;
 	/* height: 75px; */
+	box-shadow: 0 0 15px rgba(0,0,0,0.5);
 }
 
 a {
 	text-decoration: none;
+}
+
+.logo {
+	font-weight: bold;
+	font-size: 38px;
+	color: #222;
+}
+.logo:hover {
+	color: #F33;
 }

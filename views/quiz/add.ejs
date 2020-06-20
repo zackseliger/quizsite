@@ -1,10 +1,15 @@
 <%- include('../layouts/header') -%>
 
-<link href="/nouislider.css" rel="stylesheet">
-<script src="/nouislider.js"></script>
+<link href="/lib/nouislider.css" rel="stylesheet">
+<script src="/lib/nouislider.js"></script>
+<script src="/lib/sortable2.js"></script>
+
+<!-- quill stuff -->
+<link href="/lib/quill.snow.css" rel="stylesheet">
+<script src="/lib/quill.min.js"></script>
 
 <style>
-	.result-card {
+	.result-card, #quiz-questions {
 		width: 400px;
 		margin: 10px 0;
 		padding: 20px;
@@ -14,60 +19,73 @@
 	.result-card span {
 		font-weight: bold;
 	}
-	.result-card p {
+	.result-card p, .question-card p {
 		margin: 0;
 		font-size: 16px;
 	}
 	.noUi-target {
 		background: linear-gradient(90deg, rgba(254,24,24,1) 0%, rgba(255,255,255,1) 30%, rgba(0,255,59,1) 60%);
 	}
+	.answer {
+		display: none;
+	}
 </style>
-
-<h1>Create a Quiz</h1>
 
 <div style="border:3px solid black;left:25%;width:50%;height:50%;display:none;position:absolute;background-color:#FFF;border-radius:3px;text-align:center;box-shadow:#999 0 0 10px;" id="modal">
 	<div style="cursor:pointer;right:5px;position:absolute;top:3px;" onclick="(()=>$('#modal').hide())();"><i class="fa fa-window-close"></i></div>
-	<div id="modal-content" style="overflow:auto;height:100%;">
-
-	</div>
+	<div id="modal-content" style="overflow:auto;height:100%;"></div>
 </div>
 
-<div style="display:inline-block;max-width:50%;">
-	<div class="collapsible-container">
-		<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Results</h2>
-		<input type="text" placeholder="Name" id="result-name-input"/><br/>
-		<textarea placeholder="Description" id="result-description-input"></textarea><br/>
-		<button onclick="saveResult()">Save</button>
-	</div>
+<div style="width:95%;margin:0 auto;">
+	<h1>Create a Quiz</h1>
 
-	<div class="collapsible-container">
-		<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Questions</h2>
-		<textarea placeholder="Question" id="question-input"></textarea><br/>
-		<div id="question-answers">
-			<input type="text" placeholder="Answer 1"/><br/>
-			<input type="text" placeholder="Answer 2"/><br/>
+	<div style="display:inline-block;max-width:50%;">
+		<div class="collapsible-container">
+			<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Results</h2>
+			<input type="text" placeholder="Name" id="result-name-input"/><br/>
+			<textarea placeholder="Description" id="result-description-input"></textarea><br/>
+			<button onclick="saveResult()">Save</button>
 		</div>
-		<button onclick="showQuestionEffects()">Effects</button>
-		<button onclick="saveQuestion()">Save</button>
+
+		<div class="collapsible-container">
+			<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Questions</h2>
+			<textarea placeholder="Question" id="question-input"></textarea><br/>
+			<div id="question-answers">
+				<input type="text" placeholder="Answer 1"/><br/>
+				<input type="text" placeholder="Answer 2"/><br/>
+			</div>
+			<button onclick="showQuestionEffects()">Effects</button>
+			<button onclick="saveQuestion()">Save</button>
+		</div>
+
+		<div class="collapsible-container">
+			<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Misc</h2>
+			<input type="text" placeholder="Title" id="quiz-title" /><br/>
+			<textarea id="quiz-description" placeholder="Description"></textarea><br/>
+			<label>Quiz Image: </label><input type="file" id="quiz-image"/>
+		</div>
 	</div>
 
-	<div class="collapsible-container">
-		<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Misc</h2>
-		<input type="text" placeholder="Title" id="quiz-title" /><br/>
-		<textarea id="quiz-description" placeholder="Description"></textarea><br/>
-		<label>Quiz Image: </label><input type="file" id="quiz-image"/>
+	<div style="display:inline-block;vertical-align:top;max-width:49%;float:right;">
+		<div id="quiz-questions"></div>
+		<div id="quiz-results"></div>
 	</div>
 </div>
 
-<div style="display:inline-block;vertical-align:top;max-width:49%;">
-	<div id="quiz-questions"></div>
-	<div id="quiz-results"></div>
+<div style="width:70%;margin:0 auto;background-color:#FFF">
+	<div id="article-editor"></div>
 </div>
-
-<div id="slider"></div>
 <button onclick="sendRequest()">Submit</button>
 
 <script>
+	let quill = new Quill('#article-editor', {
+		theme: 'snow',
+		placeholder: 'write a short article...',
+		modules: {
+			toolbar: [[{ 'header': [1, 2, 3, false] }], ['bold', 'italic', 'underline'], ['link', 'image'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['clean']]
+		}
+	});
+
 	//the quiz object that goes to the server
 	let quizData = new FormData();
 	let questions = [];
@@ -94,12 +112,12 @@
 	//show model with sliders
 	function showQuestionEffects() {
 		$('#modal-content').empty();
-		$('#question-answers').children().each((index, val) => {
-			if (index%2 === 1 || $(val).val() === "") return;
+		$('#question-answers input').each((index, val) => {
+			if ($(val).val() === "") return;
 
 			let effectCode = ``;
 			for (let i = 0; i < results.length; i++) {
-				effectCode += `<span style="font-size:16px;position:relative;left:-30%;">${results[i].name}</span><span></span><br/><div class="slider" style="width:80%;display:inline-block;"></div><br/>`;
+				effectCode += `<span style="font-size:16px;position:relative;left:-30%;">${results[i].name}</span><span class="effect-value"></span><br/><div class="slider" style="width:80%;display:inline-block;"></div><br/>`;
 			}
 			$('#modal-content').append(`<div style="font-weight:bold;margin:20px 0 0 0;">${$(val).val()}</div>${effectCode}`);
 		});
@@ -128,13 +146,56 @@
 	}
 
 	function saveQuestion() {
-		$("#quiz-questions").append(`<div class="">asufheiasfe</div>`);
+		//build answers array
+		let answers = [];
+		$("#question-answers input").each((index, val) => {
+			if ($(val).val() === "") return;
+
+			answers.push({answer: $(val).val(), effects: []});
+		});
+		$(".effect-value").each((index, val) => {
+			answers[Math.floor(index/results.length)].effects.push($(val).text());
+		});
+
+		//create html for the answers
+		let html = ``;
+		for (let i = 0; i < answers.length; i++) {
+			html += `<span class="answer">${answers[i].answer}<span class="effects">`;
+			for (let j = 0; j < answers[i].effects.length; j++) {
+				html += `${answers[i].effects[j]} `;
+			}
+			html += `</span></span>`;
+		}
+
+		//put html on the quiz questions div and make it sortable
+		$("#quiz-questions").append(`<div class="question-card"><p>${$("#question-input").val()}</p>${html}</div>`);
+		sortable("#quiz-questions");
+
+		//clear inputs relating to questions
+		$("#question-input").val("");
+		$("#question-answers input").each((index, val) => {
+			$(val).val("");
+		});
 	}
 
 	function sendRequest() {
+		//go through all question 
+		// $("#quiz-questions .question-card").each((index, val) => {
+		// 	console.log($(val).children("p").text());
+		// 	$(val).children('.answer').each((index, val) => {
+		// 			console.log($(val).contents()[0].nodeValue);
+		// 			console.log($(val).children("span").text().split(" "));
+		// 	});
+		// });
+
+		//title, description, image, and article
 		quizData.append("quizTitle", document.getElementById("quiz-title").value);
 		quizData.append("quizDescription", document.getElementById("quiz-description").value);
 		quizData.append("quizImage", document.getElementById("quiz-image").files[0]);
+		quizData.append("quizArticle", quill.root.innerHTML);
+		//results and questions
+		quizData.append("quizResults", JSON.stringify(results));
+		quizData.append()
 
 		let request = new XMLHttpRequest();
 		request.open("POST", "/addquiz");
@@ -142,15 +203,14 @@
 	}
 
 	$(document).ready(() => {
-
 		//adding or removing question answers
 		$('#question-answers').on('paste keyup', function(e) {
-			if ($(this).children().eq($(this).children().length-2).val().length > 0) {
-				$('#question-answers').append(`<input type="text" placeholder="Answer ${$(this).children().length/2+1}"/><br/>`);
+			if ($("#question-answers input").eq($("#question-answers input").length-1).val().length > 0) {
+				$('#question-answers').append(`<input type="text" placeholder="Answer ${$("#question-answers input").length+1}"/><br/>`);
 			}
-			else if ($(this).children().eq($(this).children().length-2).val().length === 0 && $(this).children().eq($(this).children().length-4).val().length === 0 && $(this).children().length > 4) {
-				$(this).children().eq($(this).children().length-1).remove();
-				$(this).children().eq($(this).children().length-1).remove();
+			else if ($("#question-answers input").eq($("#question-answers input").length-1).val().length === 0 && $("#question-answers input").eq($("#question-answers input").length-2).val().length === 0 && $("#question-answers input").length > 2) {
+				$(this).children().eq($(this).children().length-1).remove();//remove input
+				$(this).children().eq($(this).children().length-1).remove();//remove newline
 			}
 		});
 
