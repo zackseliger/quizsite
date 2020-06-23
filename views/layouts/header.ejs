@@ -11,6 +11,14 @@
 		<title>Quizonality</title>
 	<% } %>
 
+	<% if (locals.quiz) { %>
+		<% if (locals.quiz.url) { %> <meta property="og:url" content="<%=quiz.url%>" /> <% } %>
+		<meta property="og:type" content="article" />
+		<meta property="og:title" content="<%=quiz.title%>" />
+		<meta property="og:description" content="<%=quiz.description%>" />
+		<meta property="og:image" content="<%=quiz.image%>" />
+	<% } %>
+
 	<script src="/lib/jquery.js"></script>
 	<script src="/lib/fa.js"></script>
 </head>

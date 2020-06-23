@@ -88,14 +88,14 @@ ul.answers li.answer .fa-circle {
 	position: absolute;
 	left: 10px;
 	top: 13px;
-	transition: opacity .3s ease-out, transform .3s ease-out;
+	transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 ul.answers li.answer .fa-check {
 	transform: translateY(100px);
 	visibility: hidden;
 	position: absolute;
 	left:10px;
-	transition: transform .3s ease-out;
+	transition: transform 0.3s ease-out;
 }
 /* selected styles */
 @keyframes bounce-anim {
@@ -128,9 +128,18 @@ ul.answers li.answer.selected .fa-check {
 	color: #FFF;
 	font-size: 22px;
 	border-radius: 3px;
+	transition: background-color 0.3s ease-out;
 }
 .finish-button.disabled {
 	background-color: #FFF;
 	color: #222;
 	animation: shake-anim 0.8s 1 0s;
+}
+
+#results-div {
+	width: 85vw;
+	margin: 0 auto;
+	background-color:#FFF;
+	padding: 20px;
+	margin-top: 50px;
 }

@@ -126,7 +126,48 @@ app.get('/quiz/:safeTitle', function(req, res) {
   database.getQuizByTitle(req.params.safeTitle, (err, quiz) => {
     if (err) return res.send(err);
 
+    quiz.url = req.protocol + '://' + req.get('host') + req.originalUrl;
     res.render('quiz/view', {quiz: quiz, title:quiz.title+" | Quizonality"});
+  });
+});
+
+//post quiz answers, returns quiz results
+app.post('/quiz/:safeTitle', function(req, res) {
+  database.getQuizByTitle(req.params.safeTitle, (err, quiz) => {
+    if (err) return res.send("{'err': '"+err+"'}");
+
+    //get/create quiz variables
+    let results = JSON.parse(quiz.results);
+    let questions = JSON.parse(quiz.questions);
+    let answers = req.body.answers.split(' ');
+    let resultsAccum = [];
+
+    //convert answers from strings to ints
+    for (let i = 0; i < answers.length; i++) answers[i] = parseInt(answers[i]);
+    //initialize all results to 0
+    for (let i = 0; i < results.length; i++) resultsAccum[i] = 0;
+
+    //for each question, change acums by the amount each answer effect says to
+    for (let i = 0; i < answers.length && i < questions.length; i++) {
+      if (!Number.isInteger(answers[i])) continue; //make sure answer is an integer
+      if (!questions[i].answers[answers[i]]) continue; //make sure the answer that they said actually exists
+
+      //change accums for each effect
+      for (let j = 0; j < questions[i].answers[answers[i]].effects.length; j++) {
+        resultsAccum[j] += questions[i].answers[answers[i]].effects[j];
+      }
+    }
+
+    //get the index with the largest accum
+    let largestAccumIndex = 0;
+    for (let i = 1; i < resultsAccum.length; i++) {
+      if (resultsAccum[i] > resultsAccum[largestAccumIndex]) {
+        largestAccumIndex = i;
+      }
+    }
+
+    //return JSON with a name and a description of the result
+    res.send(JSON.stringify(results[largestAccumIndex]));
   });
 });
 
