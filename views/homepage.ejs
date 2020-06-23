@@ -1,5 +1,14 @@
 <%- include('layouts/header') -%>
 
-
+<div style="width:85vw;margin:0 auto;text-align:center;margin-top:12px;">
+	<% for(let i = 0; i < quizzes.length; i++) { %>
+		<div class="quiz-card">
+			<a href="<%= "/quiz/"+quizzes[i].safe_title %>">
+				<img src="<%= quizzes[i].image %>" />
+				<div><%= quizzes[i].title %></div>
+			</a>
+		</div>
+	<% } %>
+</div>
 
 <%- include('layouts/footer') -%>

@@ -5,7 +5,11 @@
 
 	<link rel="icon" type="image/png" href="/logo.png" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Quizonality</title>
+	<% if (locals.title) { %>
+		<title><%=locals.title%></title>
+	<% } else {%>
+		<title>Quizonality</title>
+	<% } %>
 
 	<script src="/lib/jquery.js"></script>
 	<script src="/lib/fa.js"></script>

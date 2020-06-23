@@ -1,5 +1,57 @@
-<%- include('layouts/header') -%>
+<%- include('../layouts/header') -%>
 
+<div id="content" style="width:85vw;margin:0 auto;">
+	<h1><%= quiz.title %></h1>
+	<%- quiz.article -%>
 
+	<div id="quiz" style="margin: 50px 0">
+		<% let questions = JSON.parse(quiz.questions); %>
+		<% for (let i = 0; i < questions.length; i++) { %>
+			<h3><%= questions[i].question %></h3>
+			<ul class="answers">
+				<% for (let j = 0; j < questions[i].answers.length; j++) { %>
+					<li class="answer">
+						<span class="far fa-circle"></span><span class="fa fa-check"></span>
+						<div class="text"><%= questions[i].answers[j].answer %></div>
+					</li>
+				<% } %>
+			</ul>
+		<% } %>
+	</div>
 
-<%- include('layouts/footer') -%>
+	<div style="text-align: center">
+		<button onclick="finishQuiz()" class="finish-button disabled" disabled>Finish Quiz</button>
+	</div>
+</div>
+
+<script>
+	$(document).ready(() => {
+		//clicking an answer
+		$('.answers .answer').on('click', function(e) {
+			//remove 'selected' from all other answers
+			$(this).closest('.answers').children('.answer').removeClass('selected');
+
+			//add 'selected' class
+			$(this).addClass('selected');
+
+			//see if every question has a selected answer
+			let allSelected = true;
+			$('.answers').each((index, val) => {
+				if ($(val).children('.answer.selected').length === 0) {
+					allSelected = false;
+				}
+			});
+			//if every question has a selected answer, enable the finish button
+			if (allSelected) {
+				$('.finish-button').removeClass('disabled');
+				$('.finish-button').removeAttr('disabled');
+			}
+		});
+	});
+
+	function finishQuiz() {
+		console.log("asieufhse");
+	}
+</script>
+
+<%- include('../layouts/footer') -%>

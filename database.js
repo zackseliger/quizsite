@@ -92,24 +92,32 @@ function loginUser(username, password, callback) {
 
 //creates a quiz and adds it to the database
 function addQuiz(data, callback) {
-  if (!data.ownerId || !data.title || !data.description || !data.article || !data.results || !data.questions || !data.image) {
-    return callback("missing data. Need id, title, description, article, results, questions, and image properties");
+  if (!data.ownerId || !data.title || !data.safeTitle || !data.description || !data.article || !data.results || !data.questions || !data.image) {
+    return callback("missing data. Need id, title, safeTitle, description, article, results, questions, and image properties");
   }
 
-  queryDatabase(`INSERT INTO quizzes (owner_id, title, description, article, image, results, questions)`+
-  ` VALUES (${mysql.escape(data.ownerId)}, ${mysql.escape(data.title)}, ${mysql.escape(data.description)}, ${mysql.escape(data.article)},`+
-  ` ${mysql.escape(data.image)}, ${mysql.escape(data.results)}, ${mysql.escape(data.questions)});`)
+  queryDatabase(`INSERT INTO quizzes (owner_id, title, safe_title, description, article, image, results, questions)`+
+  ` VALUES (${mysql.escape(data.ownerId)}, ${mysql.escape(data.title)}, ${mysql.escape(data.safeTitle)}, ${mysql.escape(data.description)},`+
+  ` ${mysql.escape(data.article)}, ${mysql.escape(data.image)}, ${mysql.escape(data.results)}, ${mysql.escape(data.questions)});`)
   .then((results) => callback(null, results))
   .catch((err) => callback(err));
 }
 
 //gets 'num' quizzes, -1 to get all of them
-function getQuizzes(num, callback) {
-  let query = `SELECT * FROM quizzes`;
+//info is the information about the quiz you need to show an info card
+function getQuizInfo(num, callback) {
+  let query = `SELECT title, safe_title, description, image FROM quizzes`;
   if (num !== -1) query += ` LIMIT ${num}`;
 
   queryDatabase(query+";")
   .then((result) => callback(null, result))
+  .catch((err) => callback(err));
+}
+
+//get quiz by safeTitle. This is the sanatized one for urls
+function getQuizByTitle(safeTitle, callback) {
+  queryDatabase(`SELECT * FROM quizzes WHERE safe_title=${mysql.escape(safeTitle)} LIMIT 1;`)
+  .then((results) => callback(null, results[0]))
   .catch((err) => callback(err));
 }
 
@@ -125,7 +133,8 @@ module.exports = {
   queryDatabase,
 
   addQuiz,
-  getQuizzes,
+  getQuizInfo,
+  getQuizByTitle,
 
   createUser,
   loginUser

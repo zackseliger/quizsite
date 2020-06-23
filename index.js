@@ -116,7 +116,18 @@ app.use('*', (req, res, next) => {
 
 //homepage
 app.get('/', function(req, res) {
-	res.render('homepage');
+  database.getQuizInfo(-1, (err, quizzes) => {
+    res.render('homepage', {quizzes: quizzes});
+  });
+});
+
+//quiz
+app.get('/quiz/:safeTitle', function(req, res) {
+  database.getQuizByTitle(req.params.safeTitle, (err, quiz) => {
+    if (err) return res.send(err);
+
+    res.render('quiz/view', {quiz: quiz, title:quiz.title+" | Quizonality"});
+  });
 });
 
 //admin dashboard
@@ -130,7 +141,7 @@ app.get('/dashboard', function(req, res) {
 app.get('/addquiz', function(req, res) {
   if (!req.session.user || req.session.user.role !== 'admin') res.redirect('/');
 
-  res.render('quiz/add.ejs');
+  res.render('quiz/add');
 });
 
 app.post('/addquiz', function(req, res) {

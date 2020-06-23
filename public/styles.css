@@ -36,3 +36,101 @@ a {
 .logo:hover {
 	color: #F33;
 }
+
+.quiz-card {
+	display: inline-block;
+	width: 90%;
+	/* width: 272px; */
+	/* height: 180px; */
+	background-color: #FFF;
+	margin: 10px;
+	border-radius:3px;
+	position: relative;
+	box-shadow: 0 0 10px rgba(0,0,0,0.5);
+	overflow: hidden;
+}
+.quiz-card a {
+	color: #222;
+}
+.quiz-card img {
+	display: block;
+	width: 100%;
+	position: relative;
+	left: 50%;
+	transform: translateX(-50%);
+}
+.quiz-card div {
+	width: 100%;
+	font-size: 22px;
+}
+
+ul.answers {
+	list-style: none;
+	padding: 0;
+	margin-bottom: 100px;
+}
+ul.answers li.answer {
+	background-color: #FFF;
+	margin: 10px;
+	padding: 10px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+	border-radius: 3px;
+	border: #999 solid 1px;
+	overflow: hidden;
+	position: relative;
+	font-size: 22px;
+	max-width: 400px;
+}
+ul.answers li.answer div.text {
+	margin-left: 30px;
+}
+ul.answers li.answer .fa-circle {
+	position: absolute;
+	left: 10px;
+	top: 13px;
+	transition: opacity .3s ease-out, transform .3s ease-out;
+}
+ul.answers li.answer .fa-check {
+	transform: translateY(100px);
+	visibility: hidden;
+	position: absolute;
+	left:10px;
+	transition: transform .3s ease-out;
+}
+/* selected styles */
+@keyframes bounce-anim {
+	0%   {transform: translate3d(0%, 0, 0);}
+	10% {transform: translate3d(0%, 2%, 0);}
+	25%  {transform: translate3d(0%, -15%, 0);}
+	50%  {transform: translate3d(0%, 4%, 0);}
+	100%   {transform: translate3d(0%, 0, 0);}
+} 
+ul.answers li.answer.selected {
+	color: #FFF;
+	background-color: #3377FF;
+	animation: bounce-anim 0.8s 1 0s;
+}
+ul.answers li.answer.selected .fa-circle {
+	opacity: 0;
+	transform: scale(2,2);
+}
+ul.answers li.answer.selected .fa-check {
+	transform: translateY(5px);
+	visibility: visible;
+}
+
+.finish-button {
+	padding: 20px;
+	width: 100%;
+	max-width: 400px;
+	background-color: #3377FF;
+	border: #999 solid 1px;
+	color: #FFF;
+	font-size: 22px;
+	border-radius: 3px;
+}
+.finish-button.disabled {
+	background-color: #FFF;
+	color: #222;
+	animation: shake-anim 0.8s 1 0s;
+}
