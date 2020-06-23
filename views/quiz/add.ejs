@@ -2,7 +2,7 @@
 
 <link href="/lib/nouislider.css" rel="stylesheet">
 <script src="/lib/nouislider.js"></script>
-<script src="/lib/sortable2.js"></script>
+<script src="/lib/sortable.js"></script>
 
 <!-- quill stuff -->
 <link href="/lib/quill.snow.css" rel="stylesheet">
@@ -88,7 +88,6 @@
 
 	//the quiz object that goes to the server
 	let quizData = new FormData();
-	let questions = [];
 	let results = [];
 	quizData.append("ownerId", <%= myuser.id %>);
 
@@ -180,13 +179,19 @@
 
 	function sendRequest() {
 		//go through all question 
-		// $("#quiz-questions .question-card").each((index, val) => {
-		// 	console.log($(val).children("p").text());
-		// 	$(val).children('.answer').each((index, val) => {
-		// 			console.log($(val).contents()[0].nodeValue);
-		// 			console.log($(val).children("span").text().split(" "));
-		// 	});
-		// });
+		let questions = [];
+		$("#quiz-questions .question-card").each((index, val) => {
+			questions.push({
+				question: $(val).children("p").text(),
+				answers: []
+			});
+			$(val).children('.answer').each((index, val) => {
+				questions[questions.length-1].answers.push({
+						answer: $(val).contents()[0].nodeValue,
+						effects: $(val).children("span").text().split(" ").map((val) => parseInt(val)).slice(0, results.length)
+				})
+			});
+		});
 
 		//title, description, image, and article
 		quizData.append("quizTitle", document.getElementById("quiz-title").value);
@@ -195,9 +200,14 @@
 		quizData.append("quizArticle", quill.root.innerHTML);
 		//results and questions
 		quizData.append("quizResults", JSON.stringify(results));
-		quizData.append()
+		quizData.append("quizQuestions", JSON.stringify(questions));
 
 		let request = new XMLHttpRequest();
+		request.onreadystatechange = function() {
+			if (this.readyState == 4) {
+				console.log(request.responseText);
+			}
+		};
 		request.open("POST", "/addquiz");
 		request.send(quizData);
 	}

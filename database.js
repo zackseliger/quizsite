@@ -90,16 +90,42 @@ function loginUser(username, password, callback) {
   });
 }
 
+//creates a quiz and adds it to the database
+function addQuiz(data, callback) {
+  if (!data.ownerId || !data.title || !data.description || !data.article || !data.results || !data.questions || !data.image) {
+    return callback("missing data. Need id, title, description, article, results, questions, and image properties");
+  }
+
+  queryDatabase(`INSERT INTO quizzes (owner_id, title, description, article, image, results, questions)`+
+  ` VALUES (${mysql.escape(data.ownerId)}, ${mysql.escape(data.title)}, ${mysql.escape(data.description)}, ${mysql.escape(data.article)},`+
+  ` ${mysql.escape(data.image)}, ${mysql.escape(data.results)}, ${mysql.escape(data.questions)});`)
+  .then((results) => callback(null, results))
+  .catch((err) => callback(err));
+}
+
+//gets 'num' quizzes, -1 to get all of them
+function getQuizzes(num, callback) {
+  let query = `SELECT * FROM quizzes`;
+  if (num !== -1) query += ` LIMIT ${num}`;
+
+  queryDatabase(query+";")
+  .then((result) => callback(null, result))
+  .catch((err) => callback(err));
+}
+
 //create database and tables if they don't exist
 queryDatabase(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`)
 .then(() => queryDatabase(`USE ${process.env.DB_NAME};`))
 .then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY AUTO_INCREMENT, username TINYTEXT, email TINYTEXT, password TINYTEXT, role VARCHAR(255) DEFAULT 'user');`))
 .then(() => queryDatabase(`SELECT * FROM users`).then((results) => {if (results.length === 0) bcrypt.hash('defaultpassword', 12, (err, hash) => queryDatabase(`INSERT INTO USERS (username, email, password, role) VALUES ('admin', 'admin@example.com', '${hash}', 'admin')`))}))
-.then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS quizzes (id INT PRIMARY KEY AUTO_INCREMENT, owner_id INT NOT NULL, name TEXT, description TEXT, article TEXT DEFAULT '', image TEXT, type INT DEFAULT 0, tags TEXT DEFAULT '', results TEXT, questions TEXT);`))
+.then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS quizzes (id INT PRIMARY KEY AUTO_INCREMENT, owner_id INT NOT NULL, title TEXT, safe_title TEXT, description TEXT, article TEXT, image TEXT, type INT DEFAULT 0, tags TEXT DEFAULT '', results TEXT, questions TEXT);`))
 .catch((err) => console.log(err));
 
 module.exports = {
   queryDatabase,
+
+  addQuiz,
+  getQuizzes,
 
   createUser,
   loginUser

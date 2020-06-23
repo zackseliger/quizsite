@@ -3,12 +3,28 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
 const Busboy = require('busboy');
+const AWS = require('aws-sdk');
 
-//set up environment
-require('dotenv').config();
-const database = require('./database');
-const app = express();
+//global utilities
+function sanatizeString(str) {
+	//chars we should remove
+ 	const removeChars = ["~", "`", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "=", "+", "[", "{", "]",
+					 "}", "\\", "|", ";", ":", "\"", "'", "&#8216;", "&#8217;", "&#8220;", "&#8221;", "&#8211;", "&#8212;",
+					 "â€”", "â€“", ",", "<", ">", "/", "?", "."];
+	//chars we should replace with a dash
+  const dashChars = [' '];
+	let result = JSON.parse(JSON.stringify(str));
 
+	//sanitize the string
+	for (let i = 0; i < removeChars.length; i++) {
+		result = result.split(removeChars[i]).join('');
+	}
+	for (let i = 0; i < dashChars.length; i++) {
+		result = result.split(dashChars[i]).join('-');
+	}
+
+	return result.toLowerCase();
+}
 //utility busboy function
 function parseFormData(req, callback) {
   let busboy = new Busboy({headers: req.headers});
@@ -38,6 +54,17 @@ function parseFormData(req, callback) {
 
   req.pipe(busboy);
 }
+
+//set up environment
+require('dotenv').config();
+const database = require('./database');
+const app = express();
+//AWS config and making s3
+AWS.config.update({
+	accessKeyId: process.env.AMAZON_ACCESS_KEY_ID,
+	secretAccessKey: process.env.AMAZON_SECRET_KEY
+});
+const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 
 //setup static routes and body parser
 app.use(express.static('public'));
@@ -112,8 +139,43 @@ app.post('/addquiz', function(req, res) {
   parseFormData(req, (err, data) => {
     if (err) return res.send(err);
 
-    console.log(data);
-    res.send("ok");
+    //get property with the thumbnail and set a path for it
+    let dataKeys = Object.keys(data);
+    let fileData = null;
+    let fileExt = "";
+    dataKeys.map((val) => { if (val.indexOf('quizImage.') !== -1) { fileData = data[val]; fileExt = "."+val.slice(10); } });
+    if (fileData === null) return res.send("no image upload detected");
+
+    //create params to upload to s3
+    const params = {
+      ACL: "authenticated-read",
+      Body: fileData,
+      Bucket: "quizonality",
+      Key: "thumbs/"+sanatizeString(data.quizTitle)+fileExt
+    };
+    //upload to s3
+    s3.putObject(params, (err, result) => {
+      if (err) return res.send(err);
+
+      //the stuff we're gonna upload to the database
+      let quizData = {
+        ownerId: data.ownerId,
+        title: data.quizTitle,
+        safeTitle: sanatizeString(data.quizTitle),
+        description: data.quizDescription,
+        article: data.quizArticle,
+        image: "https://quizonality.s3.amazonaws.com/thumbs/"+sanatizeString(data.quizTitle)+fileExt,
+        results: data.quizResults,
+        questions: data.quizQuestions
+      };
+
+      //create the game in the database
+      database.addQuiz(quizData, (err, result) => {
+        if (err) return res.send(err);
+
+        res.send("ok");//quiz successfully created
+      });
+    });
   });
 });
 
@@ -131,7 +193,7 @@ app.post('/login', function(req, res) {
       username: user.username,
       role: user.role
     };
-    res.redirect('/');
+    res.send("quiz added");
   });
 });
 
