@@ -82,6 +82,15 @@ app.use(bodyParser.urlencoded({limit: "10mb", extended:true}));
 //ejs
 app.set('view engine', 'ejs');
 
+//for each request, if they have a 'www.' before the rest of the domain, remove it
+app.use('/', (req, res, next) => {
+  if (req.headers.host && req.headers.host.slice(0, 4) === 'www.') {
+    const newHost = req.headers.host.slice(4);
+    return res.redirect(301, req.protocol + '://' + newHost + req.originalUrl);
+  }
+  next();
+});
+
 //upgrade everything to https
 // app.use('*', function(req, res, next) {
 //   if (req.protocol === "http") {
@@ -327,6 +336,28 @@ app.post('/login', function(req, res) {
 		res.redirect('/');
 	});
 });
+
+function manageSite() {
+	database.getQuizInfo(-1, (err, quizzes) => {
+		if (err) return console.log(err);
+
+		//open file, write home page url
+		const writeStream = fs.createWriteStream("./public/sitemap.txt");
+		writeStream.write("https://"+process.env.DOMAIN+"\n"); //home page
+
+		//quizzes
+		for (let i = 0; i < quizzes.length; i++) {
+			writeStream.write("https://"+process.env.DOMAIN+"/quiz/"+quizzes[i].safe_title+"\n");
+		}
+
+		writeStream.end();
+	});
+
+	//calls itself after a day
+	setTimeout(manageSite, 86400000);
+}
+//call it the first time (wait 1 minute to make sure we have an sql connection)
+setTimeout(manageSite, 60000);
 
 //make server listen
 app.listen(process.env.PORT || 80, function(err) {
