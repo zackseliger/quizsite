@@ -20,7 +20,6 @@ textarea {
 
 #header {
 	background-color: #FFF;
-	/* height: 75px; */
 	box-shadow: 0 0 15px rgba(0,0,0,0.5);
 }
 #header-fixed {
@@ -30,6 +29,7 @@ textarea {
 	top: 0;
 	z-index: 1;
 	transition: transform .5s ease 10ms;
+	border-bottom: #DDD solid 1px;
 }
 .header-hidden {
 	transform: translateY(-100%);
@@ -168,7 +168,15 @@ ul.answers li.answer.selected .fa-check {
 	box-shadow: 0 0 5px rgba(0,0,0,0.5);
 }
 
+/* misc styles */
 .content-box {
 	width: 85vw;
 	margin: 0 auto;
+}
+.visible-background {
+	background-color: #FFF;
+	padding: 20px;
+	margin-top: 20px;
+	margin-bottom: 20px;
+	border-radius: 3px;
 }

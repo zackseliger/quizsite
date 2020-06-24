@@ -204,8 +204,11 @@
 
 		let request = new XMLHttpRequest();
 		request.onreadystatechange = function() {
-			if (this.readyState == 4) {
+			if (this.readyState == XMLHttpRequest.DONE) {
 				console.log(request.responseText);
+				if (requiest.responseText === "ok") {
+					window.location.replace("/dashboard");
+				}
 			}
 		};
 		request.open("POST", "/addquiz");

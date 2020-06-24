@@ -3,136 +3,153 @@ const bcrypt = require('bcrypt');
 
 //for email validation
 function isValidEmail(email) {
-  const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-  return re.test(email);
+	const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+	return re.test(email);
 }
 
 //connect to the database
 const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  port: 3306,
-  charset: "utf8mb4_general_ci"
+	host: process.env.DB_HOST,
+	user: process.env.DB_USER,
+	password: process.env.DB_PASS,
+	port: 3306,
+	charset: "utf8mb4_general_ci"
 });
 
 //executes query and returns a promise
 function queryDatabase(query) {
-  return new Promise((resolve, reject) => {
-    //query the database, reject if error, else resolve
-    pool.query(query, function(err, results, fields) {
-      if (err) return reject(err);
+	return new Promise((resolve, reject) => {
+		//query the database, reject if error, else resolve
+		pool.query(query, function(err, results, fields) {
+			if (err) return reject(err);
 
-      //resolves as an object with results and fields properties
-      resolve(results);
-    });
-  });
+			//resolves as an object with results and fields properties
+			resolve(results);
+		});
+	});
 }
 
 function createUser(body, callback) {
-  //error checking
-  if (!body.username || !body.password || !body.email || !body.passwordrepeat)
-    return callback('Please fill out all fields');
-  if (body.username.indexOf('\'') !== -1 || body.username.indexOf('.') !== -1 || body.username.indexOf(';') !== -1 || body.username.indexOf('%') !== -1)
-    return callback('The characters \'.;% are not allowed in usernames');
-  if (body.password !== body.passwordrepeat)
-    return callback('Password and repeat password do not match');
-  if (!isValidEmail(body.email)) return callback('Email is not valid');
-  if (!body.password.length || body.password.length < 8)
-    return callback('Password must be at least 8 characters long');
+	//error checking
+	if (!body.username || !body.password || !body.email || !body.passwordrepeat)
+		return callback('Please fill out all fields');
+	if (body.username.indexOf('\'') !== -1 || body.username.indexOf('.') !== -1 || body.username.indexOf(';') !== -1 || body.username.indexOf('%') !== -1)
+		return callback('The characters \'.;% are not allowed in usernames');
+	if (body.password !== body.passwordrepeat)
+		return callback('Password and repeat password do not match');
+	if (!isValidEmail(body.email)) return callback('Email is not valid');
+	if (!body.password.length || body.password.length < 8)
+		return callback('Password must be at least 8 characters long');
 
-  //see if this username or email already exists
-  queryDatabase(`SELECT * FROM users WHERE username=${mysql.escape(body.username)};`)
-  .then(result => {
-    if (result.length != 0) return callback('This username is already in use');
+	//see if this username or email already exists
+	queryDatabase(`SELECT * FROM users WHERE username=${mysql.escape(body.username)};`)
+	.then(result => {
+		if (result.length != 0) return callback('This username is already in use');
 
-    //see if this email already exists
-    queryDatabase(`SELECT * FROM users WHERE email=${mysql.escape(body.email)};`)
-    .then(result => {
-      if (result.length != 0) return callback('This email is already in use');
+		//see if this email already exists
+		queryDatabase(`SELECT * FROM users WHERE email=${mysql.escape(body.email)};`)
+		.then(result => {
+			if (result.length != 0) return callback('This email is already in use');
 
-      //if this username/email doesn't already exist, we good
-      //hash password
-      bcrypt.hash(body.password, 12, function(err, hash) {
-        if (err) return callback("Password couldn't be hashed, please try again later");
-        //make query, modify if user wants a developer account
-        let query = `INSERT INTO users (username, email, password) VALUES (${mysql.escape(body.username)}, `
-        + `${mysql.escape(body.email)}, ${mysql.escape(hash)});`;
+			//if this username/email doesn't already exist, we good
+			//hash password
+			bcrypt.hash(body.password, 12, function(err, hash) {
+				if (err) return callback("Password couldn't be hashed, please try again later");
+				//make query, modify if user wants a developer account
+				let query = `INSERT INTO users (username, email, password) VALUES (${mysql.escape(body.username)}, `
+				+ `${mysql.escape(body.email)}, ${mysql.escape(hash)});`;
 
-        //create user in database
-        queryDatabase(query)
-        .then(result => callback(null, result))
-        .catch(err => callback(err));
-      });
-    })
-    .catch(err => callback(err));
-  })
-  .catch(err => callback(err));
+				//create user in database
+				queryDatabase(query)
+				.then(result => callback(null, result))
+				.catch(err => callback(err));
+			});
+		})
+		.catch(err => callback(err));
+	})
+	.catch(err => callback(err));
 }
 
 function loginUser(username, password, callback) {
-  if (!username || !password) return callback('Fill out both fields');
+	if (!username || !password) return callback('Fill out both fields');
 
-  queryDatabase(`SELECT * from users WHERE username=${mysql.escape(username)}`)
-  .then(result => {
-    if (result.length === 0) return callback('Bad username or password');
-    //one username per user allowed, we can assume there's only one user found
-    bcrypt.compare(password, result[0].password, function(err, res) {
-      if (err) return callback("Hash couldn't be compared");
-      if (res === false) return callback('Bad username or password');
+	queryDatabase(`SELECT * from users WHERE username=${mysql.escape(username)}`)
+	.then(result => {
+		if (result.length === 0) return callback('Bad username or password');
+		//one username per user allowed, we can assume there's only one user found
+		bcrypt.compare(password, result[0].password, function(err, res) {
+			if (err) return callback("Hash couldn't be compared");
+			if (res === false) return callback('Bad username or password');
 
-      callback(null, result[0]);
-    });
-  })
-  .catch(err => {
-    console.log(err)
-    callback(err);
-  });
+			callback(null, result[0]);
+		});
+	})
+	.catch(err => {
+		console.log(err)
+		callback(err);
+	});
 }
 
 //creates a quiz and adds it to the database
 function addQuiz(data, callback) {
-  if (!data.ownerId || !data.title || !data.safeTitle || !data.description || !data.article || !data.results || !data.questions || !data.image) {
-    return callback("missing data. Need id, title, safeTitle, description, article, results, questions, and image properties");
-  }
+	if (!data.ownerId || !data.title || !data.safeTitle || !data.description || !data.article || !data.results || !data.questions || !data.image) {
+		return callback("missing data. Need id, title, safeTitle, description, article, results, questions, and image properties");
+	}
 
-  queryDatabase(`INSERT INTO quizzes (owner_id, title, safe_title, description, article, image, results, questions)`+
-  ` VALUES (${mysql.escape(data.ownerId)}, ${mysql.escape(data.title)}, ${mysql.escape(data.safeTitle)}, ${mysql.escape(data.description)},`+
-  ` ${mysql.escape(data.article)}, ${mysql.escape(data.image)}, ${mysql.escape(data.results)}, ${mysql.escape(data.questions)});`)
-  .then((results) => callback(null, results))
-  .catch((err) => callback(err));
+	queryDatabase(`INSERT INTO quizzes (owner_id, title, safe_title, description, article, image, results, questions)`+
+	` VALUES (${mysql.escape(data.ownerId)}, ${mysql.escape(data.title)}, ${mysql.escape(data.safeTitle)}, ${mysql.escape(data.description)},`+
+	` ${mysql.escape(data.article)}, ${mysql.escape(data.image)}, ${mysql.escape(data.results)}, ${mysql.escape(data.questions)});`)
+	.then((results) => callback(null, results))
+	.catch((err) => callback(err));
 }
 
 //gets 'num' quizzes, -1 to get all of them
 //info is the information about the quiz you need to show an info card
 function getQuizInfo(num, callback) {
-  let query = `SELECT id, title, safe_title, description, image FROM quizzes`;
-  if (num !== -1) query += ` LIMIT ${num}`;
+	let query = `SELECT id, title, safe_title, description, image FROM quizzes`;
+	if (num !== -1) query += ` LIMIT ${num}`;
 
-  queryDatabase(query+";")
-  .then((result) => callback(null, result))
-  .catch((err) => callback(err));
+	queryDatabase(query+";")
+	.then((result) => callback(null, result))
+	.catch((err) => callback(err));
 }
 
 //get quiz by safeTitle. This is the sanatized one for urls
 function getQuizByTitle(safeTitle, callback) {
-  queryDatabase(`SELECT * FROM quizzes WHERE safe_title=${mysql.escape(safeTitle)} LIMIT 1;`)
-  .then((results) => callback(null, results[0]))
-  .catch((err) => callback(err));
+	queryDatabase(`SELECT * FROM quizzes WHERE safe_title=${mysql.escape(safeTitle)} LIMIT 1;`)
+	.then((results) => callback(null, results[0]))
+	.catch((err) => callback(err));
 }
 
 //get all users
 function getUsers(callback) {
-  queryDatabase(`SELECT * FROM users;`)
-  .then((results) => callback(null, results))
-  .catch((err) => callback(err));
+	queryDatabase(`SELECT * FROM users;`)
+	.then((results) => callback(null, results))
+	.catch((err) => callback(err));
 }
 
 //get user by username
 function getUserByUsername(username, callback) {
-  queryDatabase(`SELECT * FROM users WHERE username=${mysql.escape(username)};`)
-  .then((results) => callback(null, results[0]))
-  .catch((err) => callback(err));
+	queryDatabase(`SELECT * FROM users WHERE username=${mysql.escape(username)};`)
+	.then((results) => callback(null, results[0]))
+	.catch((err) => callback(err));
+}
+
+//edit a user from their old username
+function editUser(oldUsername, data, callback) {
+	let query = `UPDATE users SET `;
+	if (data.username) query += `username=${mysql.escape(data.username)}, `;
+	if (data.role) query += `role=${mysql.escape(data.role)}, `;
+	if (data.password) query += `password=${mysql.escape(data.password)}, `;
+
+	//remove last comma and space
+	query = query.slice(0, query.length-2);
+	
+	query += ` WHERE username=${mysql.escape(oldUsername)};`;
+
+	queryDatabase(query)
+	.then((results) => callback(null, results))
+	.catch((err) => callback(err));
 }
 
 //create database and tables if they don't exist
@@ -144,14 +161,15 @@ queryDatabase(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME} CHARACTER SE
 .catch((err) => console.log(err));
 
 module.exports = {
-  queryDatabase,
+	queryDatabase,
 
-  addQuiz,
-  getQuizInfo,
-  getQuizByTitle,
+	addQuiz,
+	getQuizInfo,
+	getQuizByTitle,
 
-  createUser,
-  getUsers,
-  getUserByUsername,
-  loginUser
+	createUser,
+	getUsers,
+	getUserByUsername,
+	editUser,
+	loginUser
 }
