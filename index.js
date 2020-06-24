@@ -4,6 +4,8 @@ const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
 const Busboy = require('busboy');
 const AWS = require('aws-sdk');
+const fs = require('fs');
+const ejs = require('ejs');
 
 //global utilities
 function sanatizeString(str) {
@@ -66,6 +68,12 @@ AWS.config.update({
 });
 const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 
+//all of our templates
+app.locals.renderQuizzes = function(quizzes) {
+  var template = fs.readFileSync('./views/templates/renderQuizzes.ejs', 'utf-8');
+  return ejs.render(template, { quizzes });
+}
+
 //setup static routes and body parser
 app.use(express.static('public'));
 app.use(bodyParser.json({limit: "10mb"}));
@@ -117,6 +125,7 @@ app.use('*', (req, res, next) => {
 //homepage
 app.get('/', function(req, res) {
   database.getQuizInfo(-1, (err, quizzes) => {
+    if (err) return res.send(err);
     res.render('homepage', {quizzes: quizzes});
   });
 });
@@ -125,9 +134,20 @@ app.get('/', function(req, res) {
 app.get('/quiz/:safeTitle', function(req, res) {
   database.getQuizByTitle(req.params.safeTitle, (err, quiz) => {
     if (err) return res.send(err);
+    database.getQuizInfo(10, (err, quizzes) => {
+      if (err) return res.send(err);
 
-    quiz.url = req.protocol + '://' + req.get('host') + req.originalUrl;
-    res.render('quiz/view', {quiz: quiz, title:quiz.title+" | Quizonality"});
+      //make sure quiz id for 'more quizzes' doesn't match the current quiz
+      for (let i = 0; i < quizzes.length; i++) {
+        if (quizzes[i].id === quiz.id) {
+          quizzes.splice(i, 1);
+          break;
+        }
+      }
+
+      quiz.url = req.protocol + '://' + req.get('host') + req.originalUrl;
+      res.render('quiz/view', {quiz: quiz, title:quiz.title+" | Quizonality", moreQuizzes: quizzes});
+    });
   });
 });
 
@@ -171,11 +191,29 @@ app.post('/quiz/:safeTitle', function(req, res) {
   });
 });
 
+//editing users
+app.get('/user/:username/admin', function(req, res) {
+  if (!req.session.user || req.session.user.role !== 'admin') res.redirect('/');
+
+  database.getUserByUsername(decodeURIComponent(req.params.username), (err, user) => {
+    if (err) return res.send(err);
+
+    res.render('user/admin', {user: user});
+  });
+});
+
 //admin dashboard
 app.get('/dashboard', function(req, res) {
   if (!req.session.user || req.session.user.role !== 'admin') res.redirect('/');
 
-  res.render('dashboard');
+  database.getQuizInfo(-1, (err, quizzes) => {
+    if (err) return res.send(err);
+    database.getUsers((err, users) => {
+      if (err) return res.send(err);
+
+      res.render('dashboard', {quizzes:quizzes, users:users, title:"Dashboard | Quizonality"});
+    })
+  });
 });
 
 //admin route for making a quiz

@@ -23,6 +23,17 @@ textarea {
 	/* height: 75px; */
 	box-shadow: 0 0 15px rgba(0,0,0,0.5);
 }
+#header-fixed {
+	width: 100%;
+	background-color: #FFF;
+	position: fixed;
+	top: 0;
+	z-index: 1;
+	transition: transform .5s ease 10ms;
+}
+.header-hidden {
+	transform: translateY(-100%);
+}
 
 a {
 	text-decoration: none;
@@ -40,8 +51,6 @@ a {
 .quiz-card {
 	display: inline-block;
 	width: 90%;
-	/* width: 272px; */
-	/* height: 180px; */
 	background-color: #FFF;
 	margin: 10px;
 	border-radius:3px;
@@ -62,6 +71,20 @@ a {
 .quiz-card div {
 	width: 100%;
 	font-size: 22px;
+}
+
+.user-card {
+	display: inline-block;
+	margin: 10px;
+	padding: 2px 5px;
+	background-color: #FFF;
+	border: #999 solid 1px;
+}
+.user-card:hover {
+	background-color: #F4F4F4;
+}
+.user-card a {
+	color: #222;
 }
 
 ul.answers {
@@ -138,8 +161,14 @@ ul.answers li.answer.selected .fa-check {
 
 #results-div {
 	width: 85vw;
-	margin: 0 auto;
+	margin: 75px auto;
 	background-color:#FFF;
 	padding: 20px;
-	margin-top: 50px;
+	border-radius: 3px;
+	box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+.content-box {
+	width: 85vw;
+	margin: 0 auto;
 }

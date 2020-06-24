@@ -106,7 +106,7 @@ function addQuiz(data, callback) {
 //gets 'num' quizzes, -1 to get all of them
 //info is the information about the quiz you need to show an info card
 function getQuizInfo(num, callback) {
-  let query = `SELECT title, safe_title, description, image FROM quizzes`;
+  let query = `SELECT id, title, safe_title, description, image FROM quizzes`;
   if (num !== -1) query += ` LIMIT ${num}`;
 
   queryDatabase(query+";")
@@ -117,6 +117,20 @@ function getQuizInfo(num, callback) {
 //get quiz by safeTitle. This is the sanatized one for urls
 function getQuizByTitle(safeTitle, callback) {
   queryDatabase(`SELECT * FROM quizzes WHERE safe_title=${mysql.escape(safeTitle)} LIMIT 1;`)
+  .then((results) => callback(null, results[0]))
+  .catch((err) => callback(err));
+}
+
+//get all users
+function getUsers(callback) {
+  queryDatabase(`SELECT * FROM users;`)
+  .then((results) => callback(null, results))
+  .catch((err) => callback(err));
+}
+
+//get user by username
+function getUserByUsername(username, callback) {
+  queryDatabase(`SELECT * FROM users WHERE username=${mysql.escape(username)};`)
   .then((results) => callback(null, results[0]))
   .catch((err) => callback(err));
 }
@@ -137,5 +151,7 @@ module.exports = {
   getQuizByTitle,
 
   createUser,
+  getUsers,
+  getUserByUsername,
   loginUser
 }

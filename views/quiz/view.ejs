@@ -1,6 +1,6 @@
 <%- include('../layouts/header') -%>
 
-<div id="content" style="width:85vw;margin:0 auto;">
+<div id="content" class="content-box">
 	<h1><%= quiz.title %></h1>
 	<%- quiz.article -%>
 
@@ -24,6 +24,18 @@
 	</div>
 </div>
 
+<div id="more-quizzes" class="content-box" style="text-align:center;">
+	<h2>More Quizzes</h2>
+	<% for(let i = 0; i < moreQuizzes.length; i++) { %>
+		<div class="quiz-card">
+			<a href="<%= "/quiz/"+moreQuizzes[i].safe_title %>">
+				<img src="<%= moreQuizzes[i].image %>" />
+				<div><%= moreQuizzes[i].title %></div>
+			</a>
+		</div>
+	<% } %>
+</div>
+
 <script>
 	$(document).ready(() => {
 		//clicking an answer
@@ -42,7 +54,7 @@
 				}
 			});
 			//if every question has a selected answer, enable the finish button
-			if (allSelected) {
+			if (allSelected && $("#results-div").length === 0) {
 				$('.finish-button').removeClass('disabled');
 				$('.finish-button').removeAttr('disabled');
 			}
@@ -70,13 +82,16 @@
 				if (result.err) return console.log(result.err);
 
 				//add results div to body
-				$(document.body).append(`<div id="results-div"><h2>${result.name}</h2><p>${result.description}</p></div>`);
-				//scroll us to it
-				// document.body.scrollTop += document.getElementById('results-div').getBoundingClientRect().top - document.body.clientHeight*0.2;
+				$("#content").after(`<div id="results-div"><h2>${result.name}</h2><p>${result.description}</p>`+
+					`<div style="text-align:center;"><h3>Share</h3>`+
+						`<a href="https://www.facebook.com/sharer/sharer.php?u=<%= quiz.url %>" target="_blank" style="font-size:50px;color:#4267b2;"><i class="fab fa-facebook-square"></i></a>`+
+						`<a href="https://twitter.com/share?url=<%= quiz.url %>" target="_blank" style="font-size:50px;margin-left:10px;color:#1DA1F2;"><i class="fab fa-twitter-square"></i></a>`+
+					`</div></div>`);
+				//scroll to it
 				window.scrollBy({
 					top: document.getElementById('results-div').getBoundingClientRect().top - document.body.clientHeight*0.2,
 					behavior: 'smooth'
-				})
+				});
 			}
 		}
 		request.open("POST", "");
@@ -87,6 +102,18 @@
 		$('.finish-button').addClass('disabled');
 		$('.finish-button').attr('disabled', 'yes');
 	}
+
+	//scroll event for the fixed header
+	let prevScroll = 0;
+	$(window).on('scroll', function(e) {
+		if (window.scrollY > 200 && window.scrollY < prevScroll) {
+			$('#header-fixed').removeClass('header-hidden');
+		}
+		if (window.scrollY < 200 || window.scrollY > prevScroll) {
+			$('#header-fixed').addClass('header-hidden');
+		}
+		prevScroll = window.scrollY;
+	});
 </script>
 
 <%- include('../layouts/footer') -%>

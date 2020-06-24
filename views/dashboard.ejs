@@ -1,5 +1,29 @@
 <%- include('layouts/header') -%>
 
-<a href="/addquiz">New Quiz</a>
+<div class="content-box" style="text-align:center;">
+		<h2>Misc</h2>
+		<a href="/addquiz">New Quiz</a>
+	</div>
+
+<div class="content-box" style="text-align:center;">
+	<h2>Edit Users</h2>
+	<% for (let i = 0; i < users.length; i++) { %>
+		<div class="user-card">
+			<a href="<%="/user/"+encodeURIComponent(users[i].username)+"/admin" %>"><%=users[i].username%></a>
+		</div>
+	<% } %>
+</div>
+
+<div class="content-box" style="text-align:center;">
+	<h2>Edit Quizzes</h2>
+	<% for(let i = 0; i < quizzes.length; i++) { %>
+		<div class="quiz-card" style="max-width:320px;">
+			<a href="<%= "/quiz/"+quizzes[i].safe_title+"/admin" %>">
+				<img src="<%= quizzes[i].image %>" />
+				<div><%= quizzes[i].title %></div>
+			</a>
+		</div>
+	<% } %>
+</div>
 
 <%- include('layouts/footer') -%>
