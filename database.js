@@ -1,4 +1,4 @@
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
 
 //for email validation
@@ -96,9 +96,9 @@ function addQuiz(data, callback) {
 		return callback("missing data. Need id, title, safeTitle, description, article, results, questions, and image properties");
 	}
 
-	queryDatabase(`INSERT INTO quizzes (owner_id, title, safe_title, description, article, image, results, questions)`+
+	queryDatabase(`INSERT INTO quizzes (owner_id, title, safe_title, description, article, image, results, questions, tags)`+
 	` VALUES (${mysql.escape(data.ownerId)}, ${mysql.escape(data.title)}, ${mysql.escape(data.safeTitle)}, ${mysql.escape(data.description)},`+
-	` ${mysql.escape(data.article)}, ${mysql.escape(data.image)}, ${mysql.escape(data.results)}, ${mysql.escape(data.questions)});`)
+	` ${mysql.escape(data.article)}, ${mysql.escape(data.image)}, ${mysql.escape(data.results)}, ${mysql.escape(data.questions)}, '');`)
 	.then((results) => callback(null, results))
 	.catch((err) => callback(err));
 }
@@ -157,7 +157,7 @@ queryDatabase(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME} CHARACTER SE
 .then(() => queryDatabase(`USE ${process.env.DB_NAME};`))
 .then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY AUTO_INCREMENT, username TINYTEXT, email TINYTEXT, password TINYTEXT, role VARCHAR(255) DEFAULT 'user');`))
 .then(() => queryDatabase(`SELECT * FROM users`).then((results) => {if (results.length === 0) bcrypt.hash('defaultpassword', 12, (err, hash) => queryDatabase(`INSERT INTO USERS (username, email, password, role) VALUES ('admin', 'admin@example.com', '${hash}', 'admin')`))}))
-.then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS quizzes (id INT PRIMARY KEY AUTO_INCREMENT, owner_id INT NOT NULL, title TEXT, safe_title TEXT, description TEXT, article TEXT, image TEXT, type INT DEFAULT 0, tags TEXT DEFAULT '', results TEXT, questions TEXT);`))
+.then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS quizzes (id INT PRIMARY KEY AUTO_INCREMENT, owner_id INT NOT NULL, title TEXT, safe_title TEXT, description TEXT, article TEXT, image TEXT, type INT DEFAULT 0, tags TEXT NOT NULL, results TEXT, questions TEXT);`))
 .catch((err) => console.log(err));
 
 module.exports = {
