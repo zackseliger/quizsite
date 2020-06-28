@@ -27,7 +27,12 @@
 		<meta property="og:title" content="<%=quiz.title%>" />
 		<meta property="og:description" content="<%=quiz.description%>" />
 		<meta property="og:image" content="<%=quiz.image%>" />
+		<meta property="description" content="<%=quiz.description%>" />
+	<% } else { %>
+		<meta property="description" content="What is your personality, and what can it tell you about your true self? At Quizonality, we help you learn more about yourself in a fun, interactive way!" />
 	<% } %>
+
+	<script data-ad-client="<%="ca-pub-"+locals.adsensePubId%>" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 
 	<script src="/lib/jquery.js"></script>
 	<script src="/lib/fa.js"></script>

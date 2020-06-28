@@ -24,6 +24,7 @@ textarea {
 }
 #header-fixed {
 	width: 100%;
+	max-height: 60px;
 	background-color: #FFF;
 	position: fixed;
 	top: 0;

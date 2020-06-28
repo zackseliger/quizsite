@@ -206,7 +206,7 @@
 		request.onreadystatechange = function() {
 			if (this.readyState == XMLHttpRequest.DONE) {
 				console.log(request.responseText);
-				if (requiest.responseText === "ok") {
+				if (request.responseText === "ok") {
 					window.location.replace("/dashboard");
 				}
 			}

@@ -129,6 +129,7 @@ app.use('*', (req, res, next) => {
 		return res.redirect(301, req.protocol + '://' + newHost + req.originalUrl);
 	}
 	res.locals.myuser = req.session.user;//put 'myuser' in locals so ejs can access it
+	res.locals.adsensePubId = process.env.ADSENSE_PUB_ID;//publisher id for adsense
 	next();
 });
 
