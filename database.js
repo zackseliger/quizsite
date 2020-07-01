@@ -7,13 +7,32 @@ function isValidEmail(email) {
 	return re.test(email);
 }
 
-//connect to the database
-const pool = mysql.createPool({
-	host: process.env.DB_HOST,
-	user: process.env.DB_USER,
-	password: process.env.DB_PASS,
-	port: 3306,
-	charset: "utf8mb4_general_ci"
+//connect to the database, create it if it doesn't already exist
+let pool = null;
+const conn = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  port: 3306,
+  charset: "utf8mb4_general_ci"
+});
+conn.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`, function(err, results) {
+  if (err) console.log(err);
+
+  pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    port: 3306,
+    charset: "utf8mb4_general_ci"
+  });
+
+  //create all the cool things in our database like users and quizzes
+	queryDatabase(`CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY AUTO_INCREMENT, username TINYTEXT, email TINYTEXT, password TINYTEXT, role VARCHAR(255) DEFAULT 'user');`)
+	.then(() => queryDatabase(`SELECT * FROM users`).then((results) => {if (results.length === 0) bcrypt.hash('defaultpassword', 12, (err, hash) => queryDatabase(`INSERT INTO users (username, email, password, role) VALUES ('admin', 'admin@example.com', '${hash}', 'admin');`))}))
+	.then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS quizzes (id INT PRIMARY KEY AUTO_INCREMENT, owner_id INT NOT NULL, title TEXT, safe_title TEXT, description TEXT, article TEXT, image TEXT, type INT DEFAULT 0, tags TEXT NOT NULL, results TEXT, questions TEXT);`))
+	.catch((err) => console.log(err));
 });
 
 //executes query and returns a promise
@@ -107,7 +126,8 @@ function addQuiz(data, callback) {
 //info is the information about the quiz you need to show an info card
 function getQuizInfo(num, callback) {
 	let query = `SELECT id, title, safe_title, description, image FROM quizzes`;
-	if (num !== -1) query += ` LIMIT ${num}`;
+	if (num !== -1) query += ` ORDER BY RAND() LIMIT ${num}`;
+	else query += ` ORDER BY id DESC`;
 
 	queryDatabase(query+";")
 	.then((result) => callback(null, result))
@@ -151,14 +171,6 @@ function editUser(oldUsername, data, callback) {
 	.then((results) => callback(null, results))
 	.catch((err) => callback(err));
 }
-
-//create database and tables if they don't exist
-queryDatabase(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`)
-.then(() => queryDatabase(`USE ${process.env.DB_NAME};`))
-.then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY AUTO_INCREMENT, username TINYTEXT, email TINYTEXT, password TINYTEXT, role VARCHAR(255) DEFAULT 'user');`))
-.then(() => queryDatabase(`SELECT * FROM users`).then((results) => {if (results.length === 0) bcrypt.hash('defaultpassword', 12, (err, hash) => queryDatabase(`INSERT INTO users (username, email, password, role) VALUES ('admin', 'admin@example.com', '${hash}', 'admin')`))}))
-.then(() => queryDatabase(`CREATE TABLE IF NOT EXISTS quizzes (id INT PRIMARY KEY AUTO_INCREMENT, owner_id INT NOT NULL, title TEXT, safe_title TEXT, description TEXT, article TEXT, image TEXT, type INT DEFAULT 0, tags TEXT NOT NULL, results TEXT, questions TEXT);`))
-.catch((err) => console.log(err));
 
 module.exports = {
 	queryDatabase,

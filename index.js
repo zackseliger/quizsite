@@ -137,11 +137,12 @@ app.use('*', (req, res, next) => {
 app.get('/', function(req, res) {
 	database.getQuizInfo(-1, (err, quizzes) => {
 		if (err) return res.send(err);
+
 		res.render('homepage', {quizzes: quizzes});
 	});
 });
 
-//quiz
+//view quiz
 app.get('/quiz/:safeTitle', function(req, res) {
 	database.getQuizByTitle(req.params.safeTitle, (err, quiz) => {
 		if (err) return res.send(err);
@@ -159,6 +160,17 @@ app.get('/quiz/:safeTitle', function(req, res) {
 			quiz.url = req.protocol + '://' + req.get('host') + req.originalUrl;
 			res.render('quiz/view', {quiz: quiz, title:quiz.title+" | Quizonality", moreQuizzes: quizzes});
 		});
+	});
+});
+
+//admin page for quizzes
+app.get('/quiz/:safeTitle/admin', function(req, res) {
+	if (!req.session.user || req.session.user.role !== 'admin') res.redirect('/');
+
+	database.getQuizByTitle(req.params.safeTitle, (err, quiz) => {
+		if (err) return res.send(err);
+
+		res.render('quiz/admin', {quiz: quiz});
 	});
 });
 
