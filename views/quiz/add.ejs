@@ -32,6 +32,11 @@
 	.question-card:hover {
 		background-color: #EEE;
 	}
+	.edit-result-button, .edit-question-button {
+		float: right;
+		font-weight: 400;
+		cursor: pointer;
+	}
 	.noUi-target {
 		background: linear-gradient(90deg, rgba(254,24,24,1) 0%, rgba(255,255,255,1) 30%, rgba(0,255,59,1) 60%);
 	}
@@ -92,7 +97,7 @@
 	</div>
 </div>
 
-<button onclick="sendRequest()">Submit</button>
+<button onclick="uploadQuiz()">Submit</button>
 
 <script>
 	let quill = new Quill('#article-editor', {
@@ -106,35 +111,50 @@
 	//the quiz object that goes to the server
 	let quizData = new FormData();
 	let results = [];
-	let distributions = [];
 	quizData.append("ownerId", <%= myuser.id %>);
-
-	function editResult() {
-		console.log(i);
-	}
+	//globals
+	let distributions = [];
+	let resultEditIndex = -1;
+	let questionEditIndex = -1;
 
 	function saveResult() {
-		$("#quiz-results").append(`<div class="result-card">
-	<span>${$("#result-name-input").val()}</span>
-	<span style="float:right;font-weight:400;cursor:pointer;" class="edit-result-button"><i class="fa fa-edit"></i></span>
-	<p>${$("#result-description-input").val()}</p>
-</div>`);
+		let cardHtml = `\n\t<span>${$("#result-name-input").val()}</span>
+	<span class="edit-result-button"><i class="fa fa-edit"></i></span>
+	<p>${$("#result-description-input").val()}</p>\n`;
 
-		//add to results array
-		results.push({
-			name: $("#result-name-input").val(),
-			description: $("#result-description-input").val()
-		});
+		if (resultEditIndex === -1) {
+			$("#quiz-results").append(`<div class="result-card">${cardHtml}</div>`);
+			//add to results array
+			results.push({
+				name: $("#result-name-input").val(),
+				description: $("#result-description-input").val()
+			});
+		}
+		else {
+			//edit the html on the result card
+			$('.result-card').each((index, card) => {
+				if (index === resultEditIndex) {
+					$(card).empty();
+					$(card).append(`${cardHtml}`);
+				}
+			});
+			//edit the result
+			results[resultEditIndex].name = $("#result-name-input").val();
+			results[resultEditIndex].description = $("#result-description-input").val();
+		}
 
 		//add listeners to result cards
 		$('.edit-result-button').off('click');
-		$('.edit-result-button').click((e) => {
-			console.log('TODO');
+		$(".edit-result-button").click(function(e) {
+			resultEditIndex = $('.result-card').index($(this).closest('.result-card'));
+			$("#result-name-input").val(results[resultEditIndex].name);
+			$("#result-description-input").val(results[resultEditIndex].description);
 		});
 
 		//clear input and textarea
 		$("#result-name-input").val("");
 		$("#result-description-input").val("");
+		resultEditIndex = -1;
 	}
 
 	//show model with sliders
@@ -198,8 +218,45 @@
 		}
 
 		//put html on the quiz questions div and make it sortable
-		$("#quiz-questions").append(`<div class="question-card"><p>${$("#question-input").val()}</p>${html}</div>`);
-		sortable("#quiz-questions");
+		let insideCardCode = `<p>${$("#question-input").val()} <span class="edit-question-button"><i class="fa fa-edit"></i></span></p>${html}`;
+		if (questionEditIndex === -1) {
+			$("#quiz-questions").append(`<div class="question-card">${insideCardCode}</div>`);
+			sortable("#quiz-questions");
+		}
+		else {
+			console.log("edit");
+			$(".question-card").eq(questionEditIndex).empty();
+			$(".question-card").eq(questionEditIndex).append(insideCardCode);
+		}
+
+		//add listeners to result cards (TODO)
+		$('.edit-question-button').off('click');
+		$(".edit-question-button").click(function(e) {
+			questionEditIndex = $('.question-card').index($(this).closest(".question-card"));
+			console.log(questionEditIndex);
+			$("#question-input").val($(this).closest(".question-card").children("p").text());
+			//put answers into input boxes
+			$(this).closest(".question-card").children(".answer").each((index, answer) => {
+				$("#question-answers input").eq(index).val($(answer).contents()[0].nodeValue);//put answer text into input box
+				$("#question-answers input").eq(index).keyup();//fire keyup event to make new input below it
+			});
+
+			//put effect values into modal
+			showQuestionEffects();
+			//load slider values
+			let nums = []
+			$(".question-card").eq(questionEditIndex).children(".answer").children(".effects").each((index, effectSpan) => {
+				let vals = $(effectSpan).text().split(' ');
+				for (let i = 0; i < vals.length; i++) {
+					if (!isNaN(parseInt(vals[i]))) nums.push(parseInt(vals[i]));
+				}
+			})
+			sliders = document.getElementsByClassName('slider');
+			for (let i = 0; i < sliders.length; i++) {
+				sliders[i].noUiSlider.set(nums[i]+3);
+			}
+			$("#modal").hide();//hide it so it's not too annoying
+		});
 
 		//clear inputs relating to questions
 		$("#question-input").val("");
@@ -209,6 +266,7 @@
 
 		//empty modal for next question
 		$('#modal-content').empty();
+		questionEditIndex = -1; //if we were editing something, we're not anymore
 
 		//update answer distributions
 		distributions = [];
@@ -229,44 +287,6 @@
 			answerHtml += `<p><span style="font-weight:bold">${results[i].name}:</span> ${distributions[i]}</p>`;
 		}
 		$("#answer-distribution").append(answerHtml);
-	}
-
-	function sendRequest() {
-		//go through all question 
-		let questions = [];
-		$("#quiz-questions .question-card").each((index, val) => {
-			questions.push({
-				question: $(val).children("p").text(),
-				answers: []
-			});
-			$(val).children('.answer').each((index, val) => {
-				questions[questions.length-1].answers.push({
-						answer: $(val).contents()[0].nodeValue,
-						effects: $(val).children("span").text().split(" ").map((val) => parseInt(val)).slice(0, results.length)
-				})
-			});
-		});
-
-		//title, description, image, and article
-		quizData.append("quizTitle", document.getElementById("quiz-title").value);
-		quizData.append("quizDescription", document.getElementById("quiz-description").value);
-		quizData.append("quizImage", document.getElementById("quiz-image").files[0]);
-		quizData.append("quizArticle", quill.root.innerHTML);
-		//results and questions
-		quizData.append("quizResults", JSON.stringify(results));
-		quizData.append("quizQuestions", JSON.stringify(questions));
-
-		let request = new XMLHttpRequest();
-		request.onreadystatechange = function() {
-			if (this.readyState == XMLHttpRequest.DONE) {
-				console.log(request.responseText);
-				if (request.responseText === "ok") {
-					window.location.replace("/dashboard");
-				}
-			}
-		};
-		request.open("POST", "/addquiz");
-		request.send(quizData);
 	}
 
 	$(document).ready(() => {
@@ -301,6 +321,49 @@
 			}
 		});
 	});
+
+	//building and sending the request with the quiz
+	function uploadQuiz() {
+		//go through all question 
+		let questions = [];
+		$("#quiz-questions .question-card").each((index, val) => {
+			questions.push({
+				question: $(val).children("p").text(),
+				answers: []
+			});
+			$(val).children('.answer').each((index, val) => {
+				questions[questions.length-1].answers.push({
+						answer: $(val).contents()[0].nodeValue,
+						effects: $(val).children("span").text().split(" ").map((val) => parseInt(val)).slice(0, results.length)
+				})
+			});
+		});
+
+		//title, description, image, and article
+		quizData.append("quizTitle", document.getElementById("quiz-title").value);
+		quizData.append("quizDescription", document.getElementById("quiz-description").value);
+		quizData.append("quizImage", document.getElementById("quiz-image").files[0]);
+		quizData.append("quizArticle", quill.root.innerHTML);
+		//results and questions
+		quizData.append("quizResults", JSON.stringify(results));
+		quizData.append("quizQuestions", JSON.stringify(questions));
+
+		sendQuiz();
+	}
+
+	function sendQuiz() {
+		let request = new XMLHttpRequest();
+		request.onreadystatechange = function() {
+			if (this.readyState == XMLHttpRequest.DONE) {
+				console.log(request.responseText);
+				if (request.responseText === "ok") {
+					window.location.replace("/dashboard");
+				}
+			}
+		};
+		request.open("POST", "/addquiz");
+		request.send(quizData);
+	}
 </script>
 
 <%- include('../layouts/footer') -%>
