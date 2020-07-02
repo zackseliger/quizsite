@@ -1,7 +1,9 @@
 <% for(let i = 0; i < quizzes.length; i++) { %>
   <div class="quiz-card">
     <a href="<%= "/quiz/"+quizzes[i].safe_title %>">
-      <img src="<%= quizzes[i].image %>" />
+      <div class="quiz-img">
+        <img src="<%= quizzes[i].image %>" />
+      </div>
       <div><%= quizzes[i].title %></div>
     </a>
   </div>

@@ -17,9 +17,11 @@
 <div class="content-box" style="text-align:center;">
 	<h2>Edit Quizzes</h2>
 	<% for(let i = 0; i < quizzes.length; i++) { %>
-		<div class="quiz-card" style="max-width:320px;">
+		<div class="quiz-card" style="max-width: 320px;">
 			<a href="<%= "/quiz/"+quizzes[i].safe_title+"/admin" %>">
-				<img src="<%= quizzes[i].image %>" />
+				<div class="quiz-img">
+					<img src="<%= quizzes[i].image %>" />
+				</div>
 				<div><%= quizzes[i].title %></div>
 			</a>
 		</div>

@@ -10,11 +10,14 @@
 
 <style>
 	.result-card, #quiz-questions {
-		width: 400px;
+		min-width: 400px;
 		margin: 10px 0;
 		padding: 20px;
 		background-color: #FFF;
 		border-radius: 3px;
+	}
+	.result-card:hover {
+		background-color: #EEE;
 	}
 	.result-card span {
 		font-weight: bold;
@@ -22,6 +25,12 @@
 	.result-card p, .question-card p {
 		margin: 0;
 		font-size: 16px;
+	}
+	.question-card {
+		padding: 5px;
+	}
+	.question-card:hover {
+		background-color: #EEE;
 	}
 	.noUi-target {
 		background: linear-gradient(90deg, rgba(254,24,24,1) 0%, rgba(255,255,255,1) 30%, rgba(0,255,59,1) 60%);
@@ -31,14 +40,14 @@
 	}
 </style>
 
-<div style="border:3px solid black;left:25%;width:50%;height:50%;display:none;position:absolute;background-color:#FFF;border-radius:3px;text-align:center;box-shadow:#999 0 0 10px;" id="modal">
+<div style="border:3px solid black;left:25%;width:50%;height:50%;display:none;position:fixed;background-color:#FFF;border-radius:3px;text-align:center;box-shadow:#999 0 0 10px;" id="modal">
 	<div style="cursor:pointer;right:5px;position:absolute;top:3px;" onclick="(()=>$('#modal').hide())();"><i class="fa fa-window-close"></i></div>
 	<div id="modal-content" style="overflow:auto;height:100%;"></div>
 </div>
 
-<div style="width:95%;margin:0 auto;">
-	<h1>Create a Quiz</h1>
+<h1 style="margin-left: 20px;">Create a Quiz</h1>
 
+<div style="width:95%;margin:0 auto;display:flex;justify-content:space-between;">
 	<div style="display:inline-block;max-width:50%;">
 		<div class="collapsible-container">
 			<h2 class="collapsible-toggle"><i class="collapsible-arrow fa fa-arrow-down" aria-hidden="true"></i>Results</h2>
@@ -66,15 +75,23 @@
 		</div>
 	</div>
 
-	<div style="display:inline-block;vertical-align:top;max-width:49%;float:right;">
+	<div style="display:inline-block;vertical-align:top;margin-left:5%;">
 		<div id="quiz-questions"></div>
 		<div id="quiz-results"></div>
 	</div>
 </div>
 
-<div style="width:70%;margin:0 auto;background-color:#FFF">
+<div style="width:70%;height:50%;margin:0 auto;background-color:#FFF">
 	<div id="article-editor"></div>
 </div>
+
+<div class="content-box visible-background">
+	<h2>Answer Distributions</h2>
+	<div id="answer-distribution">
+
+	</div>
+</div>
+
 <button onclick="sendRequest()">Submit</button>
 
 <script>
@@ -89,11 +106,17 @@
 	//the quiz object that goes to the server
 	let quizData = new FormData();
 	let results = [];
+	let distributions = [];
 	quizData.append("ownerId", <%= myuser.id %>);
+
+	function editResult() {
+		console.log(i);
+	}
 
 	function saveResult() {
 		$("#quiz-results").append(`<div class="result-card">
 	<span>${$("#result-name-input").val()}</span>
+	<span style="float:right;font-weight:400;cursor:pointer;" class="edit-result-button"><i class="fa fa-edit"></i></span>
 	<p>${$("#result-description-input").val()}</p>
 </div>`);
 
@@ -103,6 +126,12 @@
 			description: $("#result-description-input").val()
 		});
 
+		//add listeners to result cards
+		$('.edit-result-button').off('click');
+		$('.edit-result-button').click((e) => {
+			console.log('TODO');
+		});
+
 		//clear input and textarea
 		$("#result-name-input").val("");
 		$("#result-description-input").val("");
@@ -110,17 +139,19 @@
 
 	//show model with sliders
 	function showQuestionEffects() {
-		$('#modal-content').empty();
-		$('#question-answers input').each((index, val) => {
-			if ($(val).val() === "") return;
+		if ($('.slider').length !== results.length*($("#question-answers input").length-1)) {
+			$('#modal-content').empty();
+			$('#question-answers input').each((index, val) => {
+				if ($(val).val() === "") return;
 
-			let effectCode = ``;
-			for (let i = 0; i < results.length; i++) {
-				effectCode += `<span style="font-size:16px;position:relative;left:-30%;">${results[i].name}</span><span class="effect-value"></span><br/><div class="slider" style="width:80%;display:inline-block;"></div><br/>`;
-			}
-			$('#modal-content').append(`<div style="font-weight:bold;margin:20px 0 0 0;">${$(val).val()}</div>${effectCode}`);
-		});
-		makeSliders();
+				let effectCode = ``;
+				for (let i = 0; i < results.length; i++) {
+					effectCode += `<span style="font-size:16px;position:relative;left:-30%;">${results[i].name}</span><span class="effect-value"></span><br/><div class="slider" style="width:80%;display:inline-block;"></div><br/>`;
+				}
+				$('#modal-content').append(`<div style="font-weight:bold;margin:20px 0 0 0;">${$(val).val()}</div>${effectCode}`);
+			});
+			makeSliders();
+		}
 		$("#modal").show();
 	}
 
@@ -175,6 +206,29 @@
 		$("#question-answers input").each((index, val) => {
 			$(val).val("");
 		});
+
+		//empty modal for next question
+		$('#modal-content').empty();
+
+		//update answer distributions
+		distributions = [];
+		for (let i = 0; i < results.length; i++) distributions.push(0);
+		//for each question, sum up the effects
+		$(".question-card").each((index, card) => {
+			$(card).children(".answer").each((i, answer) => {
+				let nums = $(answer).children(".effects").text().split(' ');
+				for (let i = 0; i < results.length; i++) {
+					distributions[i] += parseInt(nums[i]);
+				}
+			});
+		});
+		//put answer distributions to the div
+		$("#answer-distribution").empty();
+		let answerHtml = ``;
+		for (let i = 0; i < results.length; i++) {
+			answerHtml += `<p><span style="font-weight:bold">${results[i].name}:</span> ${distributions[i]}</p>`;
+		}
+		$("#answer-distribution").append(answerHtml);
 	}
 
 	function sendRequest() {

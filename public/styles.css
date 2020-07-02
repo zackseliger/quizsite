@@ -63,11 +63,11 @@ a {
 	color: #222;
 }
 .quiz-card img {
-	display: block;
 	width: 100%;
-	position: relative;
-	left: 50%;
-	transform: translateX(-50%);
+}
+.quiz-card .quiz-img {
+	height: 25%;
+	overflow: hidden;
 }
 .quiz-card div {
 	width: 100%;
