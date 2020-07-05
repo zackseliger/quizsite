@@ -7,6 +7,7 @@ const AWS = require('aws-sdk');
 const fs = require('fs');
 const ejs = require('ejs');
 const bcrypt = require('bcrypt');
+const compression = require('compression')
 
 //global utilities
 function sanatizeString(str) {
@@ -70,15 +71,16 @@ AWS.config.update({
 const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 
 //all of our templates
+let renderQuizTemplate = fs.readFileSync('./views/templates/renderQuizzes.ejs', 'utf-8');
 app.locals.renderQuizzes = function(quizzes) {
-	var template = fs.readFileSync('./views/templates/renderQuizzes.ejs', 'utf-8');
-	return ejs.render(template, { quizzes });
+	return ejs.render(renderQuizTemplate, { quizzes });
 }
 
 //setup static routes and body parser
 app.use(express.static('public'));
 app.use(bodyParser.json({limit: "10mb"}));
 app.use(bodyParser.urlencoded({limit: "10mb", extended:true}));
+app.use(compression());//zlib/gzip compression for responses
 //ejs
 app.set('view engine', 'ejs');
 
@@ -90,14 +92,6 @@ app.use('/', (req, res, next) => {
   }
   next();
 });
-
-//upgrade everything to https
-// app.use('*', function(req, res, next) {
-//   if (req.protocol === "http") {
-// 		res.redirect(301, 'https://' + req.headers.host + req.url);
-// 	}
-// 	else next();
-// });
 
 //session store and session
 const sessionStore = new MySQLStore({
@@ -170,7 +164,7 @@ app.get('/quiz/:safeTitle/admin', function(req, res) {
 	database.getQuizByTitle(req.params.safeTitle, (err, quiz) => {
 		if (err) return res.send(err);
 
-		res.render('quiz/add', {quiz: quiz});//the add page can also edit quizzes
+		res.render('quiz/add-admin', {quiz: quiz});//the add page can also edit quizzes
 	});
 });
 
@@ -229,36 +223,6 @@ app.post('/quiz/:safeTitle/admin', function(req, res) {
 				res.send("ok");
 			});
 		});
-		//create params to upload to s3
-		// const params = {
-		// 	ACL: "authenticated-read",
-		// 	Body: fileData,
-		// 	Bucket: "quizonality",
-		// 	Key: "thumbs/"+sanatizeString(data.quizTitle)+fileExt
-		// };
-		// //upload to s3
-		// s3.putObject(params, (err, result) => {
-		// 	if (err) return res.send(err);
-
-		// 	//the stuff we're gonna upload to the database
-		// 	let quizData = {
-		// 		ownerId: data.ownerId,
-		// 		title: data.quizTitle,
-		// 		safeTitle: sanatizeString(data.quizTitle),
-		// 		description: data.quizDescription,
-		// 		article: data.quizArticle,
-		// 		image: "https://quizonality.s3.amazonaws.com/thumbs/"+sanatizeString(data.quizTitle)+fileExt,
-		// 		results: data.quizResults,
-		// 		questions: data.quizQuestions
-		// 	};
-
-		// 	//create the game in the database
-		// 	database.addQuiz(quizData, (err, result) => {
-		// 		if (err) return res.send(err);
-
-		// 		res.send("wow");//quiz successfully created
-		// 	});
-		// });
 	});
 });
 
@@ -364,7 +328,7 @@ app.get('/dashboard', function(req, res) {
 app.get('/addquiz', function(req, res) {
 	if (!req.session.user || req.session.user.role !== 'admin') res.redirect('/');
 
-	res.render('quiz/add');
+	res.render('quiz/add-admin');
 });
 
 app.post('/addquiz', function(req, res) {
