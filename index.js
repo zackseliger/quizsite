@@ -3,7 +3,6 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
 const Busboy = require('busboy');
-const AWS = require('aws-sdk');
 const fs = require('fs');
 const ejs = require('ejs');
 const bcrypt = require('bcrypt');
@@ -63,12 +62,6 @@ function parseFormData(req, callback) {
 require('dotenv').config();
 const database = require('./database');
 const app = express();
-//AWS config and making s3
-AWS.config.update({
-	accessKeyId: process.env.AMAZON_ACCESS_KEY_ID,
-	secretAccessKey: process.env.AMAZON_SECRET_KEY
-});
-const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 
 //all of our templates
 let renderQuizTemplate = fs.readFileSync('./views/templates/renderQuizzes.ejs', 'utf-8');
@@ -197,24 +190,11 @@ app.post('/quiz/:safeTitle/admin', function(req, res) {
 
 			//if the thumbnail has changed, we need to upload the new image, delete the old one
 			if (fileData !== null) {
-				newQuiz.image = "https://quizonality.s3.amazonaws.com/thumbs/"+sanatizeString(data.quizTitle)+fileExt;//change file path
-				const paramsDel = {
-					Bucket: 'quizonality',
-					Key: quiz.image.slice(quiz.image.indexOf("thumbs/"))
-				};
-				const paramsPut = {
-					ACL: "authenticated-read",
-					Body: fileData,
-					Bucket: "quizonality",
-					Key: "thumbs/"+sanatizeString(data.quizTitle)+fileExt
-				};
-				s3.deleteObject(paramsDel, (err, result) => {
-					if (err) console.log(err);
-					s3.putObject(paramsPut, (err, result) => {
-						if (err) console.log(err);
-						//hopefully everything worked out ok
-					});
-				});
+				newQuiz.image = "/static/thumbs/"+sanatizeString(data.quizTitle)+fileExt;//change file path
+
+				//delete old image and create the new one
+				fs.unlink("public"+quiz.image, (err) => (err) ? console.log(err):0 );
+				fs.writeFile("public/static/thumbs/"+sanatizeString(data.quizTitle)+fileExt, fileData, (err) => { if (err) console.log(err) });
 			}
 
 			database.editQuiz(req.params.safeTitle, newQuiz, (err, result) => {
@@ -343,37 +323,29 @@ app.post('/addquiz', function(req, res) {
 		let fileExt = "";
 		dataKeys.map((val) => { if (val.indexOf('quizImage.') !== -1) { fileData = data[val]; fileExt = "."+val.slice(10); } });
 		if (fileData === null) return res.send("no image upload detected");
+		
+		//save image to static/thumbs
+		fs.writeFile("public/static/thumbs/"+sanatizeString(data.quizTitle)+fileExt, fileData, (err) => { if (err) console.log(err) });
 
-		//create params to upload to s3
-		const params = {
-			ACL: "authenticated-read",
-			Body: fileData,
-			Bucket: "quizonality",
-			Key: "thumbs/"+sanatizeString(data.quizTitle)+fileExt
+		//the stuff we're gonna upload to the database
+		let quizData = {
+			ownerId: data.ownerId,
+			title: data.quizTitle,
+			safeTitle: sanatizeString(data.quizTitle),
+			description: data.quizDescription,
+			article: data.quizArticle,
+			image: "/static/thumbs/"+sanatizeString(data.quizTitle)+fileExt,
+			results: data.quizResults,
+			questions: data.quizQuestions
 		};
-		//upload to s3
-		s3.putObject(params, (err, result) => {
+
+		//create the game in the database
+		database.addQuiz(quizData, (err, result) => {
 			if (err) return res.send(err);
 
-			//the stuff we're gonna upload to the database
-			let quizData = {
-				ownerId: data.ownerId,
-				title: data.quizTitle,
-				safeTitle: sanatizeString(data.quizTitle),
-				description: data.quizDescription,
-				article: data.quizArticle,
-				image: "https://quizonality.s3.amazonaws.com/thumbs/"+sanatizeString(data.quizTitle)+fileExt,
-				results: data.quizResults,
-				questions: data.quizQuestions
-			};
-
-			//create the game in the database
-			database.addQuiz(quizData, (err, result) => {
-				if (err) return res.send(err);
-
-				res.send("ok");//quiz successfully created
-			});
+			res.send("ok");//quiz successfully created
 		});
+		// });
 	});
 });
 
