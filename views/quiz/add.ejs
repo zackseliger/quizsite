@@ -224,16 +224,14 @@
 			sortable("#quiz-questions");
 		}
 		else {
-			console.log("edit");
 			$(".question-card").eq(questionEditIndex).empty();
 			$(".question-card").eq(questionEditIndex).append(insideCardCode);
 		}
 
-		//add listeners to result cards (TODO)
+		//add listeners to result cards
 		$('.edit-question-button').off('click');
 		$(".edit-question-button").click(function(e) {
 			questionEditIndex = $('.question-card').index($(this).closest(".question-card"));
-			console.log(questionEditIndex);
 			$("#question-input").val($(this).closest(".question-card").children("p").text());
 			//put answers into input boxes
 			$(this).closest(".question-card").children(".answer").each((index, answer) => {
@@ -351,19 +349,87 @@
 		sendQuiz();
 	}
 
-	function sendQuiz() {
-		let request = new XMLHttpRequest();
-		request.onreadystatechange = function() {
-			if (this.readyState == XMLHttpRequest.DONE) {
-				console.log(request.responseText);
-				if (request.responseText === "ok") {
-					window.location.replace("/dashboard");
+	<% if (locals.quiz) { %>
+		//sends request for editing
+		function sendQuiz() {
+			let request = new XMLHttpRequest()
+			request.onreadystatechange = function() {
+				if (this.readyState == XMLHttpRequest.DONE) {
+					console.log(request.responseText);
+					if (request.responseText === "ok") {
+						window.location.replace("/dashboard");
+					}
 				}
+			};
+			request.open("POST", window.location.href);
+			request.send(quizData);
+		}
+
+		$(document).ready(() => {
+			//title, description, and article
+			$("#quiz-title").val("<%= quiz.title %>");
+			$("#quiz-description").val("<%= quiz.description %>");
+			quill.clipboard.dangerouslyPasteHTML(`<%- quiz.article %>`);
+
+			//results
+			<% 
+				let escapeChars = ["\"", "n"];
+				for (let i = 0; i < quiz.results.length-1; i++) {
+					if (quiz.results[i] === "\\" && escapeChars.indexOf(quiz.results[i+1]) !== -1) {
+						quiz.results = quiz.results.slice(0, i) + "\\" + quiz.results.slice(i);
+						i++;
+					}
+				}
+			%>
+			quizResultsString = `<%= quiz.results %>`;
+			let quizResults = JSON.parse(`<%- quiz.results %>`);
+			for (let i = 0; i < quizResults.length; i++) {
+				$("#result-name-input").val(quizResults[i].name);
+				$("#result-description-input").val(quizResults[i].description);
+				saveResult();
 			}
-		};
-		request.open("POST", "/addquiz");
-		request.send(quizData);
-	}
+
+			//questions
+			let quizQuestions = JSON.parse(`<%- quiz.questions %>`);
+			for (let i = 0; i < quizQuestions.length; i++) {
+				$("#question-input").val(quizQuestions[i].question);
+				//put answers into input boxes
+				for (let j = 0; j < quizQuestions[i].answers.length; j++) {
+					$("#question-answers input").eq(j).val(quizQuestions[i].answers[j].answer);
+					$("#question-answers input").eq(j).keyup();
+				}
+
+				//put effect values into modal
+				showQuestionEffects();
+				let nums = [];
+				let sliders = document.getElementsByClassName('slider');
+				for (let j = 0; j < quizQuestions[i].answers.length; j++) {
+					for (let k = 0; k < quizQuestions[i].answers[j].effects.length; k++) {
+						sliders[j*quizQuestions[i].answers[j].effects.length + k].noUiSlider.set(quizQuestions[i].answers[j].effects[k]+3);
+					}
+				}
+				$("#modal").hide();//hide it so it's not too annoying
+
+				//save the question
+				saveQuestion();
+			}
+		});
+	<% } else {%>
+		//sends request for adding
+		function sendQuiz() {
+			let request = new XMLHttpRequest();
+			request.onreadystatechange = function() {
+				if (this.readyState == XMLHttpRequest.DONE) {
+					console.log(request.responseText);
+					if (request.responseText === "ok") {
+						window.location.replace("/dashboard");
+					}
+				}
+			};
+			request.open("POST", "/addquiz");
+			request.send(quizData);
+		}
+	<% } %>
 </script>
 
 <%- include('../layouts/footer') -%>

@@ -170,7 +170,95 @@ app.get('/quiz/:safeTitle/admin', function(req, res) {
 	database.getQuizByTitle(req.params.safeTitle, (err, quiz) => {
 		if (err) return res.send(err);
 
-		res.render('quiz/admin', {quiz: quiz});
+		res.render('quiz/add', {quiz: quiz});//the add page can also edit quizzes
+	});
+});
+
+app.post('/quiz/:safeTitle/admin', function(req, res) {
+	if (!req.session.user || req.session.user.role !== 'admin') res.redirect('/');
+
+	parseFormData(req, (err, data) => {
+		if (err) return res.send(err);
+
+		//get property with the thumbnail and set a path for it
+		let dataKeys = Object.keys(data);
+		let fileData = null;
+		let fileExt = "";
+		dataKeys.map((val) => { if (val.indexOf('quizImage.') !== -1) { fileData = data[val]; fileExt = "."+val.slice(10); } });
+
+		//we have to get the old quiz to delete the old image or compare data
+		database.getQuizByTitle(req.params.safeTitle, (err, quiz) => {
+			if (err) return res.send(err);
+
+			//properties to update for sure
+			let newQuiz = {
+				title: data.quizTitle,
+				safeTitle: sanatizeString(data.quizTitle),
+				description: data.quizDescription
+			};
+			//properties that can be a lot of data if we don't check first
+			if (data.quizArticle !== quiz.article) newQuiz.article = data.quizArticle;
+			if (data.quizResults !== quiz.results) newQuiz.results = data.quizResults;
+			if (data.quizQuestions !== quiz.questions) newQuiz.questions = data.quizQuestions;
+
+			//if the thumbnail has changed, we need to upload the new image, delete the old one
+			if (fileData !== null) {
+				newQuiz.image = "https://quizonality.s3.amazonaws.com/thumbs/"+sanatizeString(data.quizTitle)+fileExt;//change file path
+				const paramsDel = {
+					Bucket: 'quizonality',
+					Key: quiz.image.slice(quiz.image.indexOf("thumbs/"))
+				};
+				const paramsPut = {
+					ACL: "authenticated-read",
+					Body: fileData,
+					Bucket: "quizonality",
+					Key: "thumbs/"+sanatizeString(data.quizTitle)+fileExt
+				};
+				s3.deleteObject(paramsDel, (err, result) => {
+					if (err) console.log(err);
+					s3.putObject(paramsPut, (err, result) => {
+						if (err) console.log(err);
+						//hopefully everything worked out ok
+					});
+				});
+			}
+
+			database.editQuiz(req.params.safeTitle, newQuiz, (err, result) => {
+				if (err) return res.send(err);
+
+				res.send("ok");
+			});
+		});
+		//create params to upload to s3
+		// const params = {
+		// 	ACL: "authenticated-read",
+		// 	Body: fileData,
+		// 	Bucket: "quizonality",
+		// 	Key: "thumbs/"+sanatizeString(data.quizTitle)+fileExt
+		// };
+		// //upload to s3
+		// s3.putObject(params, (err, result) => {
+		// 	if (err) return res.send(err);
+
+		// 	//the stuff we're gonna upload to the database
+		// 	let quizData = {
+		// 		ownerId: data.ownerId,
+		// 		title: data.quizTitle,
+		// 		safeTitle: sanatizeString(data.quizTitle),
+		// 		description: data.quizDescription,
+		// 		article: data.quizArticle,
+		// 		image: "https://quizonality.s3.amazonaws.com/thumbs/"+sanatizeString(data.quizTitle)+fileExt,
+		// 		results: data.quizResults,
+		// 		questions: data.quizQuestions
+		// 	};
+
+		// 	//create the game in the database
+		// 	database.addQuiz(quizData, (err, result) => {
+		// 		if (err) return res.send(err);
+
+		// 		res.send("wow");//quiz successfully created
+		// 	});
+		// });
 	});
 });
 

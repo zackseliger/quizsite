@@ -122,6 +122,27 @@ function addQuiz(data, callback) {
 	.catch((err) => callback(err));
 }
 
+//edits the quiz with the original safe_title value
+function editQuiz(oldTitle, data, callback) {
+	let query = `UPDATE quizzes SET `;
+	if (data.title) query += `title=${mysql.escape(data.title)}, `;
+	if (data.safeTitle) query += `safe_title=${mysql.escape(data.safeTitle)}, `;
+	if (data.description) query += `description=${mysql.escape(data.description)}, `;
+	if (data.article) query += `article=${mysql.escape(data.article)}, `;
+	if (data.results) query += `results=${mysql.escape(data.results)}, `;
+	if (data.questions) query += `questions=${mysql.escape(data.questions)}, `;
+	if (data.image) query += `image=${mysql.escape(data.image)}, `;
+
+	//remove last comma and space
+	query = query.slice(0, query.length-2);
+	
+	query += ` WHERE safe_title=${mysql.escape(oldTitle)};`;
+
+	queryDatabase(query)
+	.then((results) => callback(null, results))
+	.catch((err) => callback(err));
+}
+
 //gets 'num' quizzes, -1 to get all of them
 //info is the information about the quiz you need to show an info card
 function getQuizInfo(num, callback) {
@@ -176,6 +197,7 @@ module.exports = {
 	queryDatabase,
 
 	addQuiz,
+	editQuiz,
 	getQuizInfo,
 	getQuizByTitle,
 
