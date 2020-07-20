@@ -145,6 +145,7 @@ app.get('/quiz/:safeTitle', function(req, res) {
 			}
 
 			quiz.url = req.protocol + '://' + req.get('host') + req.originalUrl;
+			quiz.imageUrl = req.protocol + '://' + req.get('host') + quiz.image;
 			res.render('quiz/view', {quiz: quiz, title:quiz.title+" | Quizonality", moreQuizzes: quizzes});
 		});
 	});
